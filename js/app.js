@@ -63,6 +63,11 @@
 
   function handleFileSelect(files) {
     for (const file of files) {
+      // Route video files to VideoAnalysisModal
+      if (file.type.startsWith('video/')) {
+        VideoAnalysisModal.open(file);
+        continue;
+      }
       if (!file.type.startsWith('image/')) {
         addLog('warning', `跳过非图片文件: ${file.name}`);
         continue;
@@ -1170,6 +1175,275 @@
       logEl.innerHTML = '<div class="ai-log-entry ai-log-info">[系统] AI审计分析引擎已启动...</div>';
     }
   }
+
+  // ── Video Analysis Modal ──────────────────────────────────
+
+  const VideoAnalysisModal = {
+    _file: null,
+    _url: null,
+    _frames: [],       // [{ id, base64, timestamp, result, error }]
+    _currentResultIdx: 0,
+
+    open(file) {
+      this._file = file;
+      this._url = URL.createObjectURL(file);
+      this._frames = [];
+      this._currentResultIdx = 0;
+
+      const video = $('#aiVideoPlayer');
+      video.src = this._url;
+
+      // Wait for metadata before showing
+      video.onloadedmetadata = () => {
+        $('#aiVideoTimeline').max = Math.floor(video.duration);
+        this._updateTimeDisplay();
+      };
+
+      video.ontimeupdate = () => {
+        const t = Math.floor(video.currentTime);
+        $('#aiVideoTimeline').value = t;
+        this._updateTimeDisplay();
+      };
+
+      video.onerror = () => {
+        alert('不支持该视频格式，请使用 MP4/MOV 等常见格式');
+        this.close();
+      };
+
+      // Show capture view
+      this._showView('capture');
+      $('#aiVideoModal').classList.remove('ai-hidden');
+      $('#aiVideoAnalyzeBtn').disabled = true;
+      this._renderFrameList();
+    },
+
+    close() {
+      if (this._url) {
+        URL.revokeObjectURL(this._url);
+        this._url = null;
+      }
+      this._file = null;
+      this._frames = [];
+      const video = $('#aiVideoPlayer');
+      video.pause();
+      video.src = '';
+      $('#aiVideoModal').classList.add('ai-hidden');
+    },
+
+    togglePlay() {
+      const video = $('#aiVideoPlayer');
+      if (video.paused) {
+        video.play();
+        $('#aiVideoPlayIcon').className = 'fas fa-pause';
+      } else {
+        video.pause();
+        $('#aiVideoPlayIcon').className = 'fas fa-play';
+      }
+    },
+
+    skip(seconds) {
+      const video = $('#aiVideoPlayer');
+      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+    },
+
+    seekTo(value) {
+      const video = $('#aiVideoPlayer');
+      video.currentTime = parseFloat(value);
+    },
+
+    _updateTimeDisplay() {
+      const video = $('#aiVideoPlayer');
+      const cur = this._fmtTime(video.currentTime || 0);
+      const dur = this._fmtTime(video.duration || 0);
+      $('#aiVideoTime').textContent = `${cur} / ${dur}`;
+    },
+
+    _fmtTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    },
+
+    captureFrame() {
+      const video = $('#aiVideoPlayer');
+      if (!video.duration) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      const base64 = canvas.toDataURL('image/jpeg', 0.9);
+
+      this._frames.push({
+        id: 'f_' + Date.now(),
+        base64,
+        timestamp: video.currentTime,
+        result: null,
+        error: null
+      });
+
+      this._renderFrameList();
+      $('#aiVideoAnalyzeBtn').disabled = false;
+    },
+
+    deleteFrame(id) {
+      this._frames = this._frames.filter(f => f.id !== id);
+      this._renderFrameList();
+      if (this._frames.length === 0) {
+        $('#aiVideoAnalyzeBtn').disabled = true;
+      }
+    },
+
+    clearAllFrames() {
+      this._frames = [];
+      this._renderFrameList();
+      $('#aiVideoAnalyzeBtn').disabled = true;
+    },
+
+    _renderFrameList() {
+      const list = $('#aiFrameList');
+      const countEl = $('#aiFrameCount');
+      countEl.textContent = this._frames.length;
+
+      if (this._frames.length === 0) {
+        list.innerHTML = '<div class="ai-video-frames-empty">点击"截取当前帧"添加截图</div>';
+        return;
+      }
+
+      list.innerHTML = this._frames.map(f => {
+        const timeLabel = this._fmtTime(f.timestamp);
+        let overlay = '';
+        let errorClass = '';
+        if (f.result) {
+          overlay = `<span class="ai-video-frame-time">${f.result.count} 辆</span>`;
+        } else if (f.error) {
+          overlay = '<div class="ai-video-frame-error">失败</div>';
+          errorClass = ' error';
+        } else {
+          overlay = `<span class="ai-video-frame-time">${timeLabel}</span>`;
+        }
+        return `
+          <div class="ai-video-frame-item${errorClass}" onclick="VideoAnalysisModal._previewFrame('${f.id}')">
+            <img src="${f.base64}" alt="${timeLabel}">
+            <button class="ai-video-frame-delete" onclick="event.stopPropagation(); VideoAnalysisModal.deleteFrame('${f.id}')">
+              <i class="fas fa-times"></i>
+            </button>
+            ${overlay}
+          </div>`;
+      }).join('');
+    },
+
+    _previewFrame(id) {
+      const frame = this._frames.find(f => f.id === id);
+      if (!frame) return;
+      const modalImg = $('#aiPreviewImage');
+      const modal = $('#aiImageModal');
+      if (modalImg) modalImg.src = frame.base64;
+      if (modal) modal.classList.remove('ai-hidden');
+    },
+
+    async analyzeAll() {
+      if (this._frames.length === 0) return;
+      if (!AuditAPI.isConfigured()) {
+        alert('请先配置 API Key');
+        const panel = $('#aiConfigPanel');
+        if (panel) panel.classList.remove('ai-hidden');
+        return;
+      }
+
+      this._showView('analyzing');
+      const config = AuditAPI.loadConfig();
+
+      for (let i = 0; i < this._frames.length; i++) {
+        const frame = this._frames[i];
+        $('#aiVideoAnalyzeProgress').textContent = `正在分析第 ${i + 1}/${this._frames.length} 张截帧...`;
+
+        try {
+          const messages = [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: frame.base64 } },
+              { type: 'text', text: '这是一张航拍图片。请统计图片中渣土车（自卸货车）的数量，并描述每辆车在图片中的大致位置。\n\n请仅返回JSON（不要其他内容）：\n{"count": 数字, "vehicles": [{"id": 序号, "position": "位置描述", "color": "颜色", "status": "行驶中/停靠"}]}' }
+            ]
+          }];
+          const result = await AuditAPI._callAPI(messages, config);
+          // Parse JSON from result, stripping markdown fences if present
+          const clean = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+          const jsonMatch = clean.match(/\{[\s\S]*\}/);
+          frame.result = jsonMatch ? JSON.parse(jsonMatch[0]) : { count: 0, vehicles: [], raw: result };
+        } catch (e) {
+          frame.error = e.message;
+        }
+      }
+
+      this._currentResultIdx = 0;
+      this._renderResults();
+    },
+
+    _renderResults() {
+      this._showView('result');
+      const completed = this._frames.filter(f => f.result);
+      const totalCount = completed.reduce((sum, f) => sum + (f.result.count || 0), 0);
+
+      // Tabs
+      const tabsEl = $('#aiVideoResultTabs');
+      tabsEl.innerHTML = this._frames.map((f, i) => {
+        const label = this._fmtTime(f.timestamp);
+        const count = f.result ? `${f.result.count}辆` : f.error ? '失败' : '--';
+        const active = i === this._currentResultIdx ? ' active' : '';
+        return `<button class="ai-video-result-tab${active}" onclick="VideoAnalysisModal._showResult(${i})">${label} · ${count}</button>`;
+      }).join('') + `<span class="ai-video-result-total">合计: <strong>${totalCount} 辆</strong></span>`;
+
+      this._showResult(this._currentResultIdx);
+    },
+
+    _showResult(idx) {
+      this._currentResultIdx = idx;
+      const frame = this._frames[idx];
+      if (!frame) return;
+
+      // Update tab highlighting
+      const tabs = document.querySelectorAll('.ai-video-result-tab');
+      tabs.forEach((t, i) => t.classList.toggle('active', i === idx));
+
+      // Render result
+      $('#aiVideoResultImage').src = frame.base64;
+
+      if (frame.error) {
+        $('#aiVideoResultCount').textContent = '--';
+        $('#aiVideoResultVehicles').innerHTML = `<div style="color:var(--ai-color-red);font-size:0.75rem;">分析失败: ${frame.error}</div>`;
+        return;
+      }
+
+      const result = frame.result || { count: 0, vehicles: [] };
+      $('#aiVideoResultCount').textContent = result.count || 0;
+
+      const vehicles = result.vehicles || [];
+      if (vehicles.length === 0) {
+        $('#aiVideoResultVehicles').innerHTML = '<div style="color:var(--ai-color-text-secondary);font-size:0.6875rem;">未检测到车辆</div>';
+      } else {
+        $('#aiVideoResultVehicles').innerHTML = vehicles.map(v =>
+          `<div class="ai-video-vehicle-item">
+            <strong>#${v.id}</strong> ${v.position || ''}${v.color ? ' · ' + v.color : ''}${v.status ? ' · ' + v.status : ''}
+          </div>`
+        ).join('');
+      }
+    },
+
+    backToCapture() {
+      this._showView('capture');
+    },
+
+    _showView(name) {
+      $('#aiVideoCaptureView').classList.toggle('ai-hidden', name !== 'capture');
+      $('#aiVideoAnalyzingView').classList.toggle('ai-hidden', name !== 'analyzing');
+      $('#aiVideoResultView').classList.toggle('ai-hidden', name !== 'result');
+    }
+  };
+
+  // Expose globally for onclick handlers in HTML
+  window.VideoAnalysisModal = VideoAnalysisModal;
 
   // ── Global API (for onclick handlers) ───────────────────
 
