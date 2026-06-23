@@ -3871,19 +3871,3 @@ body {
   padding: 0.125rem 0.25rem;
   text-align: center;
 }
-
-/* Analyzing badge on frame */
-.ai-video-frame-analyzing {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ai-video-frame-analyzing .ai-video-spinner {
-  width: 20px;
-  height: 20px;
-  border-width: 2px;
-}

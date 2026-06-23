@@ -1442,6 +1442,7 @@
 
     backToCapture() {
       this._showView('capture');
+      this._renderFrameList();
     },
 
     _showView(name) {
