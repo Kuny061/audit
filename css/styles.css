@@ -2812,6 +2812,112 @@ body {
   margin-top: 0.125rem;
 }
 
+/* ── Three-Stage Pipeline Indicator (right sidebar review list) ── */
+.ai-review-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 0.375rem;
+}
+
+.ai-review-pipeline-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.5rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  background: rgba(30, 42, 74, 0.4);
+  white-space: nowrap;
+}
+
+.ai-review-pipeline-icon {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ai-review-pipeline-label {
+  color: var(--ai-color-text-secondary);
+}
+
+/* Pipeline stage states */
+.ai-review-pipeline-stage.pass {
+  background: rgba(16, 185, 129, 0.12);
+}
+.ai-review-pipeline-stage.pass .ai-review-pipeline-icon {
+  color: #34d399;
+}
+.ai-review-pipeline-stage.pass .ai-review-pipeline-label {
+  color: #34d399;
+}
+
+.ai-review-pipeline-stage.fail {
+  background: rgba(239, 68, 68, 0.1);
+}
+.ai-review-pipeline-stage.fail .ai-review-pipeline-icon {
+  color: #f87171;
+}
+.ai-review-pipeline-stage.fail .ai-review-pipeline-label {
+  color: #f87171;
+}
+
+.ai-review-pipeline-stage.warning {
+  background: rgba(245, 158, 11, 0.1);
+}
+.ai-review-pipeline-stage.warning .ai-review-pipeline-icon {
+  color: #fbbf24;
+}
+.ai-review-pipeline-stage.warning .ai-review-pipeline-label {
+  color: #fbbf24;
+}
+
+.ai-review-pipeline-stage.pending {
+  background: rgba(148, 163, 184, 0.08);
+}
+.ai-review-pipeline-stage.pending .ai-review-pipeline-icon {
+  color: #94a3b8;
+}
+.ai-review-pipeline-stage.pending .ai-review-pipeline-label {
+  color: #94a3b8;
+}
+
+/* ── Warehouse Success Badge ── */
+.ai-review-warehouse-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.3rem;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.ai-review-warehouse-success i {
+  font-size: 0.5rem;
+}
+
+.ai-review-warehouse-failed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.3rem;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: #f87171;
+}
+
 /* ── Three-Stage Analysis Modal ─────────────────── */
 .ai-analysis-modal-content {
   max-width: 1400px;

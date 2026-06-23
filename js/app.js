@@ -207,6 +207,58 @@
     }).join('');
   }
 
+  // ── Build three-stage pipeline indicator for review list ──
+
+  function _buildPipelineStages(img) {
+    // Determine Stage 1 status (自校验)
+    let s1Status, s1Icon, s1Label;
+    if (img.type === 'photo') {
+      s1Status = 'pass'; s1Icon = '✓'; s1Label = '自校验';
+    } else if (img.stage1Status === 'pass') {
+      s1Status = 'pass'; s1Icon = '✓'; s1Label = '自校验';
+    } else if (img.stage1Status === 'fail') {
+      s1Status = 'fail'; s1Icon = '✗'; s1Label = '自校验';
+    } else {
+      s1Status = 'pending'; s1Icon = '…'; s1Label = '自校验';
+    }
+
+    // Determine Stage 2 status (交叉校验)
+    let s2Status, s2Icon, s2Label;
+    if (img.stage2Status === 'pass') {
+      s2Status = 'pass'; s2Icon = '✓'; s2Label = '交叉校验';
+    } else if (img.stage2Status === 'duplicate') {
+      s2Status = 'warning'; s2Icon = '↻'; s2Label = '交叉校验';
+    } else if (img.stage1Status === 'fail') {
+      s2Status = 'pending'; s2Icon = '—'; s2Label = '交叉校验';
+    } else {
+      s2Status = 'pending'; s2Icon = '…'; s2Label = '交叉校验';
+    }
+
+    // Determine Stage 3 status (入库对比)
+    let s3Status, s3Icon, s3Label;
+    const allSuspicious = (img.compareResults || []).filter(r => r.is_suspicious);
+    if (img.compareStatus === 'done') {
+      const libSuspicious = allSuspicious.filter(r => !r.source || (r.source !== 'internal_cross_check' && r.source !== 'barcode_self_validate'));
+      if (libSuspicious.length > 0) {
+        s3Status = 'warning'; s3Icon = '⚠'; s3Label = '入库对比';
+      } else {
+        s3Status = 'pass'; s3Icon = '✓'; s3Label = '入库对比';
+      }
+    } else if (img.compareStatus === 'error') {
+      s3Status = 'fail'; s3Icon = '✗'; s3Label = '入库对比';
+    } else if (img.stage1Status === 'fail' || img.stage2Status === 'duplicate') {
+      s3Status = 'pending'; s3Icon = '—'; s3Label = '入库对比';
+    } else {
+      s3Status = 'pending'; s3Icon = '…'; s3Label = '入库对比';
+    }
+
+    return `<div class="ai-review-pipeline">
+      <span class="ai-review-pipeline-stage ${s1Status}"><span class="ai-review-pipeline-icon">${s1Icon}</span><span class="ai-review-pipeline-label">${s1Label}</span></span>
+      <span class="ai-review-pipeline-stage ${s2Status}"><span class="ai-review-pipeline-icon">${s2Icon}</span><span class="ai-review-pipeline-label">${s2Label}</span></span>
+      <span class="ai-review-pipeline-stage ${s3Status}"><span class="ai-review-pipeline-icon">${s3Icon}</span><span class="ai-review-pipeline-label">${s3Label}</span></span>
+    </div>`;
+  }
+
   // ── Review List ─────────────────────────────────────────
 
   function renderReviewList() {
@@ -227,27 +279,10 @@
       const typeLabel = f.type === 'photo' ? '实物照片' : f.type === 'barcode' ? '条码' : '未识别';
       const typeClass = `ai-review-type-${f.type === 'photo' ? 'photo' : f.type === 'barcode' ? 'barcode' : 'unknown'}`;
 
-      // Stage badge
-      const stageMap = {
-        identified: { label: '已识别', cls: 'ai-stage-identified' },
-        self_check: { label: '自校验中', cls: 'ai-stage-selfcheck' },
-        self_check_done: { label: '自校验✓', cls: 'ai-stage-done' },
-        cross_check_done: { label: '交叉比对✓', cls: 'ai-stage-done' },
-        library: { label: '库比对中', cls: 'ai-stage-library' },
-        done: { label: '完成', cls: 'ai-stage-done' }
-      };
-      let stageBadge = '';
-      const stageKey = f.pipelineStage || (f.compareStatus === 'done' ? 'done' : '');
-      if (stageKey && stageMap[stageKey]) {
-        const s = stageMap[stageKey];
-        stageBadge = `<span class="ai-review-stage-badge ${s.cls}">${s.label}</span>`;
-      }
+      // ── Build three-stage pipeline indicator ──
+      const pipelineHtml = _buildPipelineStages(f);
 
-      const statusMap = { pending: '待比对', self_check: '自校验', analyzing: '库比对', done: '已完成', error: '失败' };
-      const statusLabel = statusMap[f.compareStatus] || '待比对';
-      const statusClass = `ai-review-status-${f.compareStatus === 'self_check' ? 'analyzing' : f.compareStatus || 'pending'}`;
-
-      // ── Stage 1: Barcode self-validation detail ──
+      // ── Barcode self-validation detail ──
       let barcodeDetailHtml = '';
       if (f.type === 'barcode' && f.barcodeInfo) {
         const bi = f.barcodeInfo;
@@ -261,38 +296,13 @@
         </div>`;
       }
 
-      // ── Stage 2 & 3: Cross-check and Library results ──
-      let diffHtml = '';
-      const allSuspicious = (f.compareResults || []).filter(r => r.is_suspicious);
-
-      // Show cross-check results (source: internal_cross_check)
-      const crossResults = allSuspicious.filter(r => r.source === 'internal_cross_check');
-      if (crossResults.length > 0) {
-        diffHtml += crossResults.map(r =>
-          `<div class="ai-review-diff ai-review-diff-warning">🔄 批次交叉比对：${r.reason || '标记可疑'}</div>`
-        ).join('');
-      }
-
-      // Show self-validation results (source: barcode_self_validate)
-      const selfResults = allSuspicious.filter(r => r.source === 'barcode_self_validate');
-      if (selfResults.length > 0) {
-        diffHtml += selfResults.map(r =>
-          `<div class="ai-review-diff ai-review-diff-suspicious">🔢 自校验：${r.reason || '标记可疑'}</div>`
-        ).join('');
-      }
-
-      // Show library comparison results (no special source)
-      if (f.compareStatus === 'done') {
-        const libResults = allSuspicious.filter(r => !r.source || (r.source !== 'internal_cross_check' && r.source !== 'barcode_self_validate'));
-        if (libResults.length > 0) {
-          diffHtml += libResults.map(r =>
-            `<div class="ai-review-diff ai-review-diff-suspicious">⚠ 库比对：${r.match_name} → ${r.reason || '标记可疑'}</div>`
-          ).join('');
-        } else if (allSuspicious.length === 0) {
-          diffHtml += '<div class="ai-review-diff ai-review-diff-clean">✓ 库比对：未发现异常匹配</div>';
-        }
-      } else if (f.compareStatus === 'error') {
-        diffHtml += `<div class="ai-review-diff ai-review-diff-suspicious">✗ ${f.error || '分析失败，可重试'}</div>`;
+      // ── Warehouse success/failure notification ──
+      let warehouseNotifyHtml = '';
+      const saveResult = _libSaveResults[f.id];
+      if (saveResult === 'success') {
+        warehouseNotifyHtml = '<div class="ai-review-warehouse-success"><i class="fas fa-check-circle"></i> 入库成功</div>';
+      } else if (saveResult === 'failed') {
+        warehouseNotifyHtml = '<div class="ai-review-warehouse-failed"><i class="fas fa-times-circle"></i> 入库失败</div>';
       }
 
       return `
@@ -302,11 +312,10 @@
             <div class="ai-review-name" title="${f.name}">${f.name}</div>
             <div class="ai-review-meta">
               <span class="ai-review-type-badge ${typeClass}">${typeLabel}</span>
-              <span class="ai-review-status ${statusClass}">${statusLabel}</span>
-              ${stageBadge}
             </div>
+            ${pipelineHtml}
             ${barcodeDetailHtml}
-            ${diffHtml}
+            ${warehouseNotifyHtml}
           </div>
         </div>`;
     }).join('');
@@ -795,6 +804,9 @@
       // Auto-save only images that passed all stages
       await autoSaveToLibrary(libWasEmpty);
 
+      // Refresh review list to show warehouse success notifications
+      renderReviewList();
+
       // Update Stage 3 card with入库结果
       const stage3All = uploadedFiles.filter(f =>
         f.stage2Status === 'pass' && f.stage1Status !== 'fail'
@@ -809,7 +821,7 @@
     } catch (e) {
       console.error('[App] Analysis error:', e);
       addLog('error', `分析异常中断: ${e.message}`);
-      try { await autoSaveToLibrary(libWasEmpty); } catch (_) { /* ignore */ }
+      try { await autoSaveToLibrary(libWasEmpty); renderReviewList(); } catch (_) { /* ignore */ }
 
       // Generate a basic report from whatever partial results we have
       try {
