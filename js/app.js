@@ -1227,6 +1227,9 @@
       const video = $('#aiVideoPlayer');
       video.pause();
       video.src = '';
+      video.onerror = null;
+      video.onloadedmetadata = null;
+      video.ontimeupdate = null;
       $('#aiVideoModal').classList.add('ai-hidden');
     },
 
@@ -1412,7 +1415,7 @@
 
       if (frame.error) {
         $('#aiVideoResultCount').textContent = '--';
-        $('#aiVideoResultVehicles').innerHTML = `<div style="color:var(--ai-color-red);font-size:0.75rem;">分析失败: ${frame.error}</div>`;
+        $('#aiVideoResultVehicles').innerHTML = `<div style="color:var(--ai-color-red);font-size:0.75rem;">分析失败: ${this._escapeHtml(frame.error)}</div>`;
         return;
       }
 
@@ -1425,10 +1428,16 @@
       } else {
         $('#aiVideoResultVehicles').innerHTML = vehicles.map(v =>
           `<div class="ai-video-vehicle-item">
-            <strong>#${v.id}</strong> ${v.position || ''}${v.color ? ' · ' + v.color : ''}${v.status ? ' · ' + v.status : ''}
+            <strong>#${v.id}</strong> ${this._escapeHtml(v.position || '')}${v.color ? ' · ' + this._escapeHtml(v.color) : ''}${v.status ? ' · ' + this._escapeHtml(v.status) : ''}
           </div>`
         ).join('');
       }
+    },
+
+    _escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
     },
 
     backToCapture() {
