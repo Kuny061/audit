@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI智能审计分析平台</title>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="ai-audit-container">
+    <!-- Header -->
+    <header class="ai-audit-header">
+      <div class="ai-header-content">
+        <div class="ai-header-left">
+          <div class="ai-logo-section">
+            <div class="ai-logo-icon">
+              <i class="fas fa-shield-halved"></i>
+            </div>
+            <div class="ai-logo-text">
+              <h1>AI智能审计分析平台</h1>
+              <p>Intelligent Audit Analysis System</p>
+            </div>
+          </div>
+          
+          <div class="ai-header-divider"></div>
+          
+          <div class="ai-system-status">
+            <span class="ai-status-dot"></span>
+            <span>系统运行中</span>
+            <span>|</span>
+            <span>大模型: <strong class="ai-text-cyan">glm-5v-turbo</strong></span>
+            <span>|</span>
+            <span>知识库: <strong class="ai-text-cyan">v3.2.1</strong></span>
+          </div>
+        </div>
+        
+        <div class="ai-header-right">
+          <div class="ai-stat-item">
+            <i class="fas fa-database"></i>
+            <span>规则库:</span>
+            <span>2,847</span>
+          </div>
+          
+          <div class="ai-stat-item">
+            <i class="fas fa-brain"></i>
+            <span>已审计:</span>
+            <span>15,392</span>
+          </div>
+          
+          <button class="ai-stat-item ai-stat-alert">
+            <i class="fas fa-bell ai-text-red"></i>
+            <span>告警</span>
+            <span class="ai-alert-badge">3</span>
+          </button>
+          
+          <div class="ai-stat-item ai-stat-user">
+            <div class="ai-user-avatar">A</div>
+            <span>审计员</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Navigation Bar -->
+      <nav class="ai-nav-bar">
+        <div class="ai-nav-content">
+          <a class="ai-nav-item ai-nav-active" data-tab="dashboard">
+            <i class="fas fa-home"></i>
+            <span>审计驾驶舱</span>
+          </a>
+          <a href="http://suguan.cdeep2.cstor.cn/#/agent" target="_blank" class="ai-nav-item">
+            <i class="fas fa-robot"></i>
+            <span>智能体平台</span>
+          </a>
+          <a class="ai-nav-item" data-tab="recognition">
+            <i class="fas fa-search"></i>
+            <span>智能识别</span>
+          </a>
+          <a class="ai-nav-item ai-nav-risk" data-tab="risk">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>风险检测</span>
+            <span class="ai-nav-badge">3</span>
+          </a>
+          <a class="ai-nav-item" data-tab="knowledge">
+            <i class="fas fa-book"></i>
+            <span>知识库管理</span>
+          </a>
+        </div>
+      </nav>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="ai-main-content">
+      <!-- Left Panel: Knowledge Base & AI Engine -->
+      <div class="ai-left-panel">
+        <!-- Knowledge Base Card -->
+        <div class="ai-card ai-card-knowledge">
+          <div class="ai-card-header">
+            <h3 class="ai-card-title">
+              <i class="fas fa-database"></i>
+              <span>知识库概览</span>
+            </h3>
+            <span class="ai-card-badge">v3.2.1</span>
+          </div>
+          
+          <div class="ai-knowledge-list">
+            <div class="ai-knowledge-item">
+              <div class="ai-knowledge-header">
+                <span class="ai-knowledge-title">审计规则库</span>
+                <span class="ai-knowledge-value">2,847</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 92%"></div>
+              </div>
+              <div class="ai-knowledge-desc">涵盖财务、合规、操作等6大类</div>
+            </div>
+            
+            <div class="ai-knowledge-item">
+              <div class="ai-knowledge-header">
+                <span class="ai-knowledge-title">法规条文库</span>
+                <span class="ai-knowledge-value">1,523</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 78%"></div>
+              </div>
+              <div class="ai-knowledge-desc">最新法规更新: 2024-01-15</div>
+            </div>
+            
+            <div class="ai-knowledge-item">
+              <div class="ai-knowledge-header">
+                <span class="ai-knowledge-title">案例库</span>
+                <span class="ai-knowledge-value">8,692</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 85%"></div>
+              </div>
+              <div class="ai-knowledge-desc">历史审计案例与判例</div>
+            </div>
+            
+            <div class="ai-knowledge-item">
+              <div class="ai-knowledge-header">
+                <span class="ai-knowledge-title">行业基准库</span>
+                <span class="ai-knowledge-value">456</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 65%"></div>
+              </div>
+              <div class="ai-knowledge-desc">覆盖12个行业基准数据</div>
+            </div>
+          </div>
+          
+          <div class="ai-rule-categories">
+            <div class="ai-rule-item">
+              <div class="ai-rule-value ai-text-red">487</div>
+              <div class="ai-rule-label">财务规则</div>
+            </div>
+            <div class="ai-rule-item">
+              <div class="ai-rule-value ai-text-orange">623</div>
+              <div class="ai-rule-label">合规规则</div>
+            </div>
+            <div class="ai-rule-item">
+              <div class="ai-rule-value ai-text-cyan">892</div>
+              <div class="ai-rule-label">操作规则</div>
+            </div>
+            <div class="ai-rule-item">
+              <div class="ai-rule-value ai-text-purple">845</div>
+              <div class="ai-rule-label">风控规则</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- AI Engine Status Card -->
+        <div class="ai-card ai-card-engine">
+          <div class="ai-card-header">
+            <h3 class="ai-card-title">
+              <i class="fas fa-microchip"></i>
+              <span>AI引擎状态</span>
+            </h3>
+            <span class="ai-status-dot"></span>
+          </div>
+          
+          <div class="ai-engine-metrics">
+            <div class="ai-engine-metric">
+              <div class="ai-metric-header">
+                <span class="ai-metric-label">CPU使用率</span>
+                <span class="ai-metric-value">42%</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 42%"></div>
+              </div>
+            </div>
+            
+            <div class="ai-engine-metric">
+              <div class="ai-metric-header">
+                <span class="ai-metric-label">内存使用</span>
+                <span class="ai-metric-value">68%</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 68%"></div>
+              </div>
+            </div>
+            
+            <div class="ai-engine-metric">
+              <div class="ai-metric-header">
+                <span class="ai-metric-label">模型推理速度</span>
+                <span class="ai-metric-value">1.2s/页</span>
+              </div>
+              <div class="ai-progress-bar">
+                <div class="ai-progress-fill" style="width: 85%"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="ai-engine-footer">
+            <div class="ai-engine-footer-item">
+              <div class="ai-engine-footer-label">模型参数</div>
+              <div class="ai-engine-footer-value">175B</div>
+            </div>
+            <div class="ai-engine-footer-item">
+              <div class="ai-engine-footer-label">并发任务</div>
+              <div class="ai-engine-footer-value">12</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Center Panel: Upload & Processing -->
+      <div class="ai-center-panel">
+        <!-- Upload Section -->
+        <div id="aiUploadSection" class="ai-card ai-card-upload">
+          <div class="ai-upload-header">
+            <div class="ai-upload-icon-wrapper ai-float-animation">
+              <div class="ai-upload-icon-pulse"></div>
+              <div class="ai-upload-icon">
+                <i class="fas fa-file-text"></i>
+              </div>
+            </div>
+            <h2 class="ai-upload-title">AI智能审计分析</h2>
+            <p class="ai-upload-subtitle">上传文件，AI智能体将自动执行审计分析</p>
+          </div>
+          <!-- Config Toggle Bar -->
+          <div class="ai-config-bar">
+            <button id="aiConfigToggleBtn" class="ai-config-toggle">
+              <i class="fas fa-cog"></i>
+              <span>API 配置</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <span id="aiConfigStatus" class="ai-config-status ai-config-unset">未配置 API Key</span>
+          </div>
+          <!-- Config Panel (collapsed by default) -->
+          <div id="aiConfigPanel" class="ai-config-panel ai-hidden">
+            <div class="ai-config-row">
+              <label>API Key <span class="ai-config-required">*</span></label>
+              <input type="password" id="aiConfigApiKey" placeholder="输入智谱 API Key">
+            </div>
+            <div class="ai-config-row">
+              <label>API 地址</label>
+              <input type="text" id="aiConfigApiBase" placeholder="https://open.bigmodel.cn/api/paas/v4">
+            </div>
+            <div class="ai-config-row">
+              <label>模型</label>
+              <select id="aiConfigModel">
+                <option value="glm-4v">glm-4v</option>
+                <option value="glm-4.5v">glm-4.5v</option>
+                <option value="AutoGLM">AutoGLM</option>
+              </select>
+            </div>
+            <div class="ai-config-row">
+              <label>相似度阈值 (%)</label>
+              <input type="number" id="aiConfigSimThreshold" min="1" max="100" value="80">
+            </div>
+            <div class="ai-config-row">
+              <label>预筛选阈值 (汉明距离)</label>
+              <input type="number" id="aiConfigPrefilterThreshold" min="0" max="64" value="10">
+            </div>
+            <button id="aiConfigSaveBtn" class="ai-config-save-btn">保存配置</button>
+          </div>
+
+          <!-- Upload Zone -->
+          <div id="aiUploadArea" class="ai-upload-zone">
+            <i class="fas fa-file-upload ai-upload-zone-icon"></i>
+            <p class="ai-upload-zone-text">拖拽文件到此处或 <span>点击上传</span></p>
+            <p class="ai-upload-zone-hint">支持PDF、Word、Excel、PPT、图片等格式</p>
+            <input type="file" id="aiFileInput" class="ai-hidden" multiple 
+                   accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.bmp">
+          </div>
+          
+          <!-- File Preview List -->
+          <div id="aiFilePreviewList" class="ai-file-preview-list ai-hidden">
+            <div class="ai-file-preview-header">
+              <span class="ai-file-preview-count">已上传文件 (<span id="aiFileCount">0</span>个)</span>
+              <button id="aiClearAllFiles" class="ai-clear-all-btn">清空全部</button>
+            </div>
+            <div id="aiFileList" class="ai-file-grid"></div>
+          </div>
+          
+          <!-- Start Analysis Button -->
+          <div id="aiStartAnalysisSection" class="ai-start-analysis-section ai-hidden">
+            <button id="aiStartAnalysisBtn" class="ai-start-analysis-btn" disabled>
+              <i class="fas fa-play"></i>
+              <span>开始AI审计分析</span>
+            </button>
+            <p class="ai-start-analysis-hint">点击开始后，AI将对所有文件进行综合审计分析</p>
+          </div>
+          
+          <div class="ai-upload-features">
+            <span><i class="fas fa-shield-alt"></i>安全加密</span>
+            <span><i class="fas fa-bolt"></i>秒级分析</span>
+            <span><i class="fas fa-check-circle"></i>99.2%准确率</span>
+          </div>
+        </div>
+        
+        <!-- AI Processing Section -->
+        <div id="aiAgentSection" class="ai-card ai-card-processing ai-hidden">
+          <div class="ai-processing-header">
+            <div class="ai-processing-info">
+              <div class="ai-processing-icon">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div>
+                <div class="ai-processing-title">AI智能体协同引擎</div>
+                <div class="ai-processing-status" id="aiAgentStatus">智能体正在协同分析...</div>
+              </div>
+            </div>
+            <div class="ai-processing-indicator" id="aiProcessingIndicator">
+              <div class="ai-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <span class="ai-processing-text">处理中</span>
+            </div>
+          </div>
+          
+          <!-- File Info Bar -->
+          <div class="ai-file-info-bar">
+            <i class="fas fa-file-word"></i>
+            <span class="ai-file-info-name" id="aiFileName">document.docx</span>
+            <span class="ai-file-info-size" id="aiFileSize">2.3 MB</span>
+            <span class="ai-file-info-time" id="aiProcessingTime">已处理: 0s</span>
+          </div>
+
+          <!-- Barcode Detail Panel -->
+          <div id="aiBarcodeDetail" class="ai-barcode-detail ai-hidden">
+            <div class="ai-barcode-detail-header">
+              <i class="fas fa-barcode"></i>
+              <span>条码扫描比对详情</span>
+            </div>
+            <div class="ai-barcode-detail-body">
+              <img id="aiBarcodeThumb" class="ai-barcode-detail-thumb" src="" alt="条码图片">
+              <div class="ai-barcode-detail-info">
+                <div class="ai-barcode-detail-name" id="aiBarcodeDetailName">--</div>
+                <div class="ai-barcode-detail-row">
+                  <span class="ai-barcode-detail-label">扫描识别数字</span>
+                  <span class="ai-barcode-detail-value ai-barcode-scanned" id="aiBarcodeScanned">--</span>
+                </div>
+                <div class="ai-barcode-detail-row">
+                  <span class="ai-barcode-detail-label">图片印刷数字</span>
+                  <span class="ai-barcode-detail-value ai-barcode-printed" id="aiBarcodePrinted">--</span>
+                </div>
+                <div class="ai-barcode-detail-row">
+                  <span class="ai-barcode-detail-label">比对结果</span>
+                  <span class="ai-barcode-detail-value" id="aiBarcodeResult">等待扫描...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Visualization -->
+          <div class="ai-visualization">
+            <div class="ai-core-wrapper">
+              <div class="ai-orbit ai-orbit-1">
+                <div class="ai-orbit-agent" style="top: -1rem; left: 50%; transform: translateX(-50%);" title="OCR识别">
+                  <i class="fas fa-eye"></i>
+                </div>
+                <div class="ai-orbit-agent" style="top: 50%; right: -1rem; transform: translateY(-50%);" title="结构解析">
+                  <i class="fas fa-sitemap"></i>
+                </div>
+                <div class="ai-orbit-agent" style="bottom: -1rem; left: 50%; transform: translateX(-50%);" title="特征提取">
+                  <i class="fas fa-microscope"></i>
+                </div>
+              </div>
+              
+              <div class="ai-core">
+                <i class="fas fa-brain"></i>
+              </div>
+              
+              <div class="ai-orbit ai-orbit-2">
+                <div class="ai-orbit-agent" style="top: 50%; left: -1rem; transform: translateY(-50%);" title="风险评估">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="ai-orbit-agent" style="top: -1rem; right: 30%;" title="合规检查">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="ai-orbit-agent" style="bottom: 0; right: 25%;" title="报告生成">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Processing Steps -->
+          <div class="ai-processing-steps">
+            <div class="ai-step-item" data-step="1">
+              <div class="ai-step-icon"><i class="fas fa-file-upload"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤1: 文件接收与预处理</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="2">
+              <div class="ai-step-icon"><i class="fas fa-eye"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤2: 文件内容识别</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="3">
+              <div class="ai-step-icon"><i class="fas fa-images"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤3: 图片预处理与分组</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="4">
+              <div class="ai-step-icon"><i class="fas fa-not-equal"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤4: 图片比对与差异识别</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="5">
+              <div class="ai-step-icon"><i class="fas fa-server"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤5: 文件上传到服务器</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="6">
+              <div class="ai-step-icon"><i class="fas fa-brain"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤6: GLM-5V-TURBO审计分析</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="7">
+              <div class="ai-step-icon"><i class="fas fa-database"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤7: 结果数据提取</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+            
+            <div class="ai-step-item" data-step="8">
+              <div class="ai-step-icon"><i class="fas fa-shield-alt"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤8: 风险智能分析</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+              <div class="ai-step-connector"></div>
+            </div>
+
+            <div class="ai-step-item" data-step="9">
+              <div class="ai-step-icon"><i class="fas fa-file-alt"></i></div>
+              <div class="ai-step-content">
+                <div class="ai-step-title">步骤9: 审计报告生成</div>
+                <div class="ai-step-detail">等待启动...</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="aiImageComparePanel" class="ai-compare-panel ai-hidden">
+            <div class="ai-compare-header">
+              <div>
+                <div class="ai-compare-title">图片比对过程</div>
+                <div class="ai-compare-subtitle" id="aiCompareSubtitle">等待选择演示图片...</div>
+              </div>
+              <div class="ai-compare-badge" id="aiCompareBadge">待比对</div>
+            </div>
+
+            <div class="ai-compare-view">
+              <div class="ai-compare-card">
+                <div class="ai-compare-card-label">基准图</div>
+                <img id="aiCompareBaseImage" class="ai-compare-image" alt="基准图">
+              </div>
+              <div class="ai-compare-card">
+                <div class="ai-compare-card-label">待审图</div>
+                <img id="aiCompareTargetImage" class="ai-compare-image" alt="待审图">
+              </div>
+            </div>
+
+            <div class="ai-compare-metrics">
+              <div class="ai-compare-metric">
+                <span class="ai-compare-metric-label">结构相似度</span>
+                <strong id="aiCompareSimilarity">--</strong>
+              </div>
+              <div class="ai-compare-metric">
+                <span class="ai-compare-metric-label">检测差异点</span>
+                <strong id="aiCompareDiffCount">--</strong>
+              </div>
+              <div class="ai-compare-metric">
+                <span class="ai-compare-metric-label">比对结论</span>
+                <strong id="aiCompareConclusion">待分析</strong>
+              </div>
+            </div>
+
+            <div id="aiCompareDiffList" class="ai-compare-diff-list"></div>
+          </div>
+          
+          <!-- Processing Log -->
+          <div class="ai-processing-log" id="aiProcessingLog">
+            <div class="ai-log-entry ai-log-info">[系统] AI智能体协同引擎已启动...</div>
+          </div>
+        </div>
+        
+        <!-- Report Section -->
+        <div id="aiReportSection" class="ai-card ai-card-report ai-hidden">
+          <div class="ai-report-header">
+            <div class="ai-report-info">
+              <div class="ai-report-icon">
+                <i class="fas fa-check"></i>
+              </div>
+              <div>
+                <div class="ai-report-title">审计分析报告</div>
+                <div class="ai-report-subtitle">分析完成 · 综合评分: 94.6%</div>
+              </div>
+            </div>
+            <div class="ai-report-actions">
+              <button class="ai-report-btn ai-report-btn-secondary">
+                <i class="fas fa-file-pdf"></i>
+                <span>PDF</span>
+              </button>
+              <button class="ai-report-btn ai-report-btn-secondary">
+                <i class="fas fa-file-word"></i>
+                <span>Word</span>
+              </button>
+              <button class="ai-report-btn ai-report-btn-primary">分享报告</button>
+            </div>
+          </div>
+          
+          <!-- Report Stats -->
+          <div class="ai-report-stats">
+            <div class="ai-stat-item">
+              <div class="ai-stat-icon ai-stat-icon-red">
+                <i class="fas fa-exclamation-circle"></i>
+              </div>
+              <div class="ai-stat-value ai-text-red">2</div>
+              <div class="ai-stat-label">风险项</div>
+            </div>
+            <div class="ai-stat-item">
+              <div class="ai-stat-icon ai-stat-icon-orange">
+                <i class="fas fa-alert-triangle"></i>
+              </div>
+              <div class="ai-stat-value ai-text-orange">3</div>
+              <div class="ai-stat-label">关注项</div>
+            </div>
+            <div class="ai-stat-item">
+              <div class="ai-stat-icon ai-stat-icon-green">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="ai-stat-value ai-text-green">7</div>
+              <div class="ai-stat-label">合规项</div>
+            </div>
+            <div class="ai-stat-item">
+              <div class="ai-stat-icon ai-stat-icon-blue">
+                <i class="fas fa-font"></i>
+              </div>
+              <div class="ai-stat-value ai-text-cyan">347</div>
+              <div class="ai-stat-label">识别字段</div>
+            </div>
+          </div>
+          
+
+          
+          <!-- AI Insight -->
+          <div class="ai-insight">
+            <div class="ai-insight-header">
+              <i class="fas fa-lightbulb"></i>
+              <span>AI洞察建议</span>
+            </div>
+            <div class="ai-insight-content ai-markdown-content" id="aiInsightContent">
+              正在等待分析结果...
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="ai-action-buttons">
+            <button id="aiUploadAnother" class="ai-btn ai-btn-secondary">
+              <i class="fas fa-upload"></i>
+              继续上传
+            </button>
+            <button id="aiRefreshPage" class="ai-btn ai-btn-primary">
+              <i class="fas fa-redo"></i>
+              重新分析
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Panel -->
+      <div class="ai-right-panel">
+        <!-- Card 1: Image Library -->
+        <div class="ai-card ai-card-gallery-list">
+          <div class="ai-card-header">
+            <h3 class="ai-card-title">
+              <i class="fas fa-images"></i>
+              <span>审计图片库</span>
+            </h3>
+            <span class="ai-card-badge" id="aiLibCount">0 张基准图</span>
+          </div>
+          <div class="ai-lib-toolbar">
+            <span class="ai-lib-toolbar-hint">所有图片均为基准对比图</span>
+            <button id="aiAddToLibBtn" class="ai-gallery-action-btn">
+              <i class="fas fa-plus"></i> 上传图片到库
+            </button>
+            <input type="file" id="aiLibFileInput" class="ai-hidden" multiple
+                   accept=".png,.jpg,.jpeg,.gif,.bmp,.webp">
+          </div>
+          <div id="aiLibraryGrid" class="ai-library-grid">
+            <div class="ai-library-empty">
+              <i class="fas fa-inbox"></i>
+              <p>图片库为空，请上传基准图</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Uploaded Images Under Review -->
+        <div class="ai-card ai-card-gallery-selection">
+          <div class="ai-card-header">
+            <h3 class="ai-card-title">
+              <i class="fas fa-layer-group"></i>
+              <span>本次上传待审</span>
+            </h3>
+            <span class="ai-card-badge" id="aiReviewCount">0 张</span>
+          </div>
+          <div id="aiReviewList" class="ai-review-list">
+            <div class="ai-review-empty">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>暂无待审图片，请先上传</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Image Preview Modal -->
+  <div id="aiImageModal" class="ai-modal ai-hidden">
+    <div class="ai-modal-overlay" onclick="UI.closePreview()"></div>
+    <div class="ai-modal-content">
+      <button class="ai-modal-close" onclick="UI.closePreview()">
+        <i class="fas fa-times"></i>
+      </button>
+      <img id="aiPreviewImage" src="" alt="Preview">
+    </div>
+  </div>
+  
+  <!-- Three-Stage Analysis Modal -->
+  <div id="aiAnalysisModal" class="ai-modal ai-hidden">
+    <div class="ai-modal-overlay"></div>
+    <div class="ai-modal-content ai-analysis-modal-content">
+      <div class="ai-modal-header">
+        <h3 class="ai-modal-title">
+          <i class="fas fa-robot"></i>
+          AI审计分析过程
+        </h3>
+        <span class="ai-analysis-progress" id="aiAnalysisProgress">准备中...</span>
+        <button class="ai-modal-close" onclick="UI.closeAnalysisModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="ai-stage-tabs" id="aiStageTabs">
+        <!-- Stage tabs rendered dynamically by JS -->
+      </div>
+      <div class="ai-modal-body" id="aiAnalysisBody">
+        <!-- Stage cards rendered dynamically by JS -->
+      </div>
+      <div class="ai-analysis-footer ai-hidden" id="aiAnalysisFooter">
+        <button class="ai-btn ai-btn-primary" id="aiViewReportBtn" onclick="UI.viewReportFromModal()">
+          <i class="fas fa-file-alt"></i>
+          查看审核分析报告
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analysis Result Modal -->
+  <div id="aiResultModal" class="ai-modal ai-hidden">
+    <div class="ai-modal-overlay" onclick="UI.closeResultModal()"></div>
+    <div class="ai-modal-content ai-modal-content-large">
+      <div class="ai-modal-header">
+        <h3 class="ai-modal-title">
+          <i class="fas fa-file-alt"></i>
+          审计分析报告
+        </h3>
+        <button class="ai-modal-close" onclick="UI.closeResultModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="aiResultContent" class="ai-modal-body">
+        <div class="ai-loading">
+          <div class="ai-spinner"></div>
+          <span>正在生成报告...</span>
+        </div>
+      </div>
+      <div class="ai-modal-footer">
+        <button class="ai-btn ai-btn-secondary" onclick="UI.closeResultModal()">
+          <i class="fas fa-times"></i>
+          关闭
+        </button>
+        <button class="ai-btn ai-btn-primary" onclick="UI.exportReport()">
+          <i class="fas fa-download"></i>
+          导出报告
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Custom JavaScript -->
+  <!-- ZXing barcode scanning library (local copy, no CDN dependency) -->
+  <script src="js/zxing.min.js"></script>
+  <script src="js/image-lib.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/analysis-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
