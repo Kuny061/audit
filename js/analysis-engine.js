@@ -278,13 +278,26 @@ class AnalysisEngine {
       // Report local matches immediately
       const allResults = [];
       for (const m of localMatches) {
-        this._log('warning', `⚠ "${img.name}" 与库中"${m.libImg.name}" pHash距离=${m.dist}，本地判定为重复图片（高风险）`);
-        allResults.push({
-          match_name: m.libImg.name,
-          similarity: Math.round((1 - m.dist / 64) * 100),
-          is_suspicious: true,
-          reason: `感知哈希高度匹配（汉明距离=${m.dist}），基本确认为同一张图片`
-        });
+        if (img.type === 'photo') {
+          // Photo matching existing library photo — suspicious (already exists, should not re-upload)
+          this._log('warning', `⚠ 感知哈希高度匹配（汉明距离=${m.dist}），与库中"${m.libImg.name}"确认为同一张照片，已存在`);
+          allResults.push({
+            match_name: m.libImg.name,
+            similarity: Math.round((1 - m.dist / 64) * 100),
+            is_suspicious: true,
+            is_existing: true,
+            reason: `感知哈希高度匹配（汉明距离=${m.dist}），与库中"${m.libImg.name}"确认为同一张照片，已存在`
+          });
+        } else {
+          // Barcode matching — still suspicious (same pattern, possibly different numbers)
+          this._log('warning', `⚠ 感知哈希高度匹配（汉明距离=${m.dist}），基本与"${m.libImg.name}"确认为同一张图片`);
+          allResults.push({
+            match_name: m.libImg.name,
+            similarity: Math.round((1 - m.dist / 64) * 100),
+            is_suspicious: true,
+            reason: `感知哈希高度匹配（汉明距离=${m.dist}），基本与"${m.libImg.name}"确认为同一张图片`
+          });
+        }
       }
 
       // Step B: Send borderline candidates to GLM for deeper analysis

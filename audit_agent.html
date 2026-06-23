@@ -658,6 +658,32 @@
             </div>
           </div>
         </div>
+
+        <!-- Card 3: Analysis Process -->
+        <div id="aiAnalysisProcessCard" class="ai-card ai-card-analysis-process">
+          <div class="ai-card-header ai-analysis-process-header-clickable" id="aiAnalysisProcessHeader" onclick="UI.reopenAnalysisModal()" title="分析完成后可点击查看过程">
+            <h3 class="ai-card-title">
+              <i class="fas fa-microchip"></i>
+              <span>本次AI审计分析过程</span>
+            </h3>
+            <span class="ai-card-badge ai-analysis-process-badge" id="aiAnalysisProcessBadge">等待中</span>
+            <i class="fas fa-chevron-right ai-analysis-process-arrow"></i>
+          </div>
+          <div class="ai-analysis-process-summary" id="aiAnalysisProcessSummary">
+            <div class="ai-analysis-process-row">
+              <span class="ai-analysis-process-label">阶段一 · 自校验</span>
+              <span class="ai-analysis-process-value" id="aiProcessStage1">--</span>
+            </div>
+            <div class="ai-analysis-process-row">
+              <span class="ai-analysis-process-label">阶段二 · 交叉校验</span>
+              <span class="ai-analysis-process-value" id="aiProcessStage2">--</span>
+            </div>
+            <div class="ai-analysis-process-row">
+              <span class="ai-analysis-process-label">阶段三 · 入库对比</span>
+              <span class="ai-analysis-process-value" id="aiProcessStage3">--</span>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>

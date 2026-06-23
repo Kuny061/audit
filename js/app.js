@@ -303,6 +303,8 @@
         warehouseNotifyHtml = '<div class="ai-review-warehouse-success"><i class="fas fa-check-circle"></i> 入库成功</div>';
       } else if (saveResult === 'failed') {
         warehouseNotifyHtml = '<div class="ai-review-warehouse-failed"><i class="fas fa-times-circle"></i> 入库失败</div>';
+      } else if (saveResult === 'existing') {
+        warehouseNotifyHtml = '<div class="ai-review-warehouse-failed"><i class="fas fa-times-circle"></i> 入库失败（图库已存在）</div>';
       }
 
       return `
@@ -325,11 +327,14 @@
 
   async function autoSaveToLibrary(libWasEmpty) {
     // Only save images that passed all stages (Stage 1 pass, Stage 2 not duplicate, Stage 3 no suspicious matches)
+    // Also exclude images that already exist in the library (is_existing)
     const unmatchedImages = uploadedFiles.filter(f => {
       if (f.compareStatus !== 'done') return false;
       if (f.type === 'unknown' || f.compareStatus === 'error') return false;
       if (f.stage1Status === 'fail') return false;
       if (f.stage2Status === 'duplicate') return false;
+      const hasExisting = (f.compareResults || []).some(r => r.is_existing);
+      if (hasExisting) return false;
       const suspicious = (f.compareResults || []).filter(r => r.is_suspicious);
       return suspicious.length === 0;
     });
@@ -340,6 +345,8 @@
         _libSaveResults[img.id] = 'skipped';
       } else if (img.compareStatus === 'error') {
         _libSaveResults[img.id] = 'skipped';
+      } else if ((img.compareResults || []).some(r => r.is_existing)) {
+        _libSaveResults[img.id] = 'existing';
       }
     }
 
@@ -395,6 +402,7 @@
   let _stageTimers = {};
   let _libSaveResults = {};  // track入库 results { imgId: 'success'|'failed'|'skipped' }
   let _stageTabUnlocked = [true, false, false];  // which tabs are clickable
+  let _analysisCompleted = false;  // whether analysis has been run in this session
 
   function openAnalysisModal() {
     const modal = $('#aiAnalysisModal');
@@ -404,6 +412,10 @@
     _stageTimers = {};
     _libSaveResults = {};
     _stageTabUnlocked = [true, false, false];
+    _analysisCompleted = false;
+    // Update process card badge to "分析中"
+    const badge = $('#aiAnalysisProcessBadge');
+    if (badge) { badge.textContent = '分析中'; badge.className = 'ai-card-badge ai-analysis-process-badge running'; }
     // Hide footer button until analysis completes
     const footerEl = $('#aiAnalysisFooter');
     if (footerEl) footerEl.classList.add('ai-hidden');
@@ -413,6 +425,93 @@
   function closeAnalysisModal() {
     const modal = $('#aiAnalysisModal');
     if (modal) modal.classList.add('ai-hidden');
+  }
+
+  function reopenAnalysisModal() {
+    if (!_analysisCompleted) {
+      console.log('[App] Analysis not yet completed, ignoring reopen');
+      return;
+    }
+    const modal = $('#aiAnalysisModal');
+    if (!modal) return;
+    // Show the modal without resetting any state — keep all stage data intact
+    modal.classList.remove('ai-hidden');
+    // Ensure footer button is visible since analysis is done
+    const footerEl = $('#aiAnalysisFooter');
+    if (footerEl) footerEl.classList.remove('ai-hidden');
+    // Switch to Stage 3 tab for final results view
+    if (_stageTabUnlocked[2]) {
+      switchStageTab(3);
+    } else if (_stageTabUnlocked[1]) {
+      switchStageTab(2);
+    } else {
+      switchStageTab(1);
+    }
+    console.log('[App] Reopened analysis modal');
+  }
+
+  // ── Update the sidebar process card summary ──
+  function _updateAnalysisProcessCard() {
+    const card = $('#aiAnalysisProcessCard');
+    if (!card) return;
+
+    // Count stage results from uploaded files
+    const stage1Pass = uploadedFiles.filter(f => f.stage1Status === 'pass').length;
+    const stage1Fail = uploadedFiles.filter(f => f.stage1Status === 'fail').length;
+    const stage2Pass = uploadedFiles.filter(f => f.stage2Status === 'pass').length;
+    const stage2Dup = uploadedFiles.filter(f => f.stage2Status === 'duplicate').length;
+    const stage3Done = uploadedFiles.filter(f => f.compareStatus === 'done').length;
+    const stage3Error = uploadedFiles.filter(f => f.compareStatus === 'error').length;
+
+    // Determine Stage 1 summary
+    const s1El = $('#aiProcessStage1');
+    if (s1El) {
+      if (stage1Pass + stage1Fail === 0) {
+        s1El.textContent = '等待中';
+        s1El.className = 'ai-analysis-process-value pending';
+      } else if (stage1Fail > 0) {
+        s1El.textContent = `${stage1Pass} 通过 · ${stage1Fail} 未通过`;
+        s1El.className = 'ai-analysis-process-value warning';
+      } else {
+        s1El.textContent = `${stage1Pass} 通过 ✓`;
+        s1El.className = 'ai-analysis-process-value pass';
+      }
+    }
+
+    // Determine Stage 2 summary
+    const s2El = $('#aiProcessStage2');
+    if (s2El) {
+      if (stage2Pass + stage2Dup === 0) {
+        s2El.textContent = '等待中';
+        s2El.className = 'ai-analysis-process-value pending';
+      } else if (stage2Dup > 0) {
+        s2El.textContent = `${stage2Pass} 通过 · ${stage2Dup} 重复`;
+        s2El.className = 'ai-analysis-process-value warning';
+      } else {
+        s2El.textContent = `${stage2Pass} 通过 ✓`;
+        s2El.className = 'ai-analysis-process-value pass';
+      }
+    }
+
+    // Determine Stage 3 summary
+    const s3El = $('#aiProcessStage3');
+    if (s3El) {
+      if (stage3Done === 0 && stage3Error === 0) {
+        s3El.textContent = '等待中';
+        s3El.className = 'ai-analysis-process-value pending';
+      } else if (stage3Error > 0) {
+        s3El.textContent = `${stage3Done} 完成 · ${stage3Error} 失败`;
+        s3El.className = 'ai-analysis-process-value warning';
+      } else {
+        const savedCount = Object.values(_libSaveResults).filter(v => v === 'success').length;
+        if (savedCount > 0) {
+          s3El.textContent = `${stage3Done} 完成 · ${savedCount} 已入库 ✓`;
+        } else {
+          s3El.textContent = `${stage3Done} 完成 ✓`;
+        }
+        s3El.className = 'ai-analysis-process-value pass';
+      }
+    }
   }
 
   function renderStageCards() {
@@ -590,6 +689,7 @@
         let saveCls = '';
         if (saveResult === 'success') { saveLabel = '✓ 已入库'; saveCls = 'ai-stage-pass'; }
         else if (saveResult === 'failed') { saveLabel = '✗ 入库失败'; saveCls = 'ai-stage-fail'; }
+        else if (saveResult === 'existing') { saveLabel = '— 入库失败（已存在）'; saveCls = 'ai-stage-dup'; }
         else if (saveResult === 'skipped') { saveLabel = '— 未入库'; saveCls = 'ai-stage-dup'; }
 
         if (img.compareStatus === 'done') {
@@ -752,6 +852,9 @@
     // Scroll modal body to top when switching stages
     const modalBody = $('#aiAnalysisBody');
     if (modalBody) modalBody.scrollTop = 0;
+
+    // Update sidebar process card summary
+    _updateAnalysisProcessCard();
   }
 
   // ── Analysis Flow ───────────────────────────────────────
@@ -813,6 +916,12 @@
       );
       _renderStageItems(3, stage3All);
 
+      // Update analysis process card in sidebar
+      _analysisCompleted = true;
+      const badge = $('#aiAnalysisProcessBadge');
+      if (badge) { badge.textContent = '已完成'; badge.className = 'ai-card-badge ai-analysis-process-badge'; }
+      _updateAnalysisProcessCard();
+
       showReport(result.report, result.summary);
 
       // Show "View Report" button at bottom of analysis modal
@@ -822,6 +931,12 @@
       console.error('[App] Analysis error:', e);
       addLog('error', `分析异常中断: ${e.message}`);
       try { await autoSaveToLibrary(libWasEmpty); renderReviewList(); } catch (_) { /* ignore */ }
+
+      // Update process card — partial results are available
+      _analysisCompleted = true;
+      const badge2 = $('#aiAnalysisProcessBadge');
+      if (badge2) { badge2.textContent = '已完成'; badge2.className = 'ai-card-badge ai-analysis-process-badge'; }
+      _updateAnalysisProcessCard();
 
       // Generate a basic report from whatever partial results we have
       try {
@@ -1108,6 +1223,7 @@
     if (modal) modal.classList.add('ai-hidden');
   };
   window.UI.closeAnalysisModal = closeAnalysisModal;
+  window.UI.reopenAnalysisModal = reopenAnalysisModal;
   window.UI.switchStageTab = switchStageTab;
   window.UI.viewReportFromModal = viewReportFromModal;
   window.UI.exportReport = () => {
@@ -1200,12 +1316,18 @@
     if (uploadAnother) {
       uploadAnother.addEventListener('click', () => {
         uploadedFiles = [];
+        _analysisCompleted = false;
+        _libSaveResults = {};
         renderUploadPreview();
         renderReviewList();
         const reportSection = $('#aiReportSection');
         const uploadSection = $('#aiUploadSection');
         if (reportSection) reportSection.classList.add('ai-hidden');
         if (uploadSection) uploadSection.classList.remove('ai-hidden');
+        // Reset process card to waiting state
+        const badge3 = $('#aiAnalysisProcessBadge');
+        if (badge3) { badge3.textContent = '等待中'; badge3.className = 'ai-card-badge ai-analysis-process-badge waiting'; }
+        _updateAnalysisProcessCard();
       });
     }
 
