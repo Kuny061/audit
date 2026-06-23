@@ -32,7 +32,7 @@ class AuditAPI {
   static _lock = Promise.resolve();
   static _minIntervalMs = 1000;  // wait 1s between calls to avoid 429
 
-  static async _callAPI(messages, config, retryCount = 0) {
+  static async _callAPI(messages, config, retryCount = 0, options = {}) {
     const MAX_RETRIES = 3;
 
     // Acquire lock — wait for previous request to fully complete
@@ -47,7 +47,7 @@ class AuditAPI {
     }
 
     try {
-      return await AuditAPI._callAPIInternal(messages, config, retryCount);
+      return await AuditAPI._callAPIInternal(messages, config, retryCount, options);
     } finally {
       if (retryCount === 0 && this._releaseLock) {
         this._releaseLock();
@@ -56,14 +56,14 @@ class AuditAPI {
     }
   }
 
-  static async _callAPIInternal(messages, config, retryCount) {
+  static async _callAPIInternal(messages, config, retryCount, options = {}) {
     const MAX_RETRIES = 3;
 
     const body = {
       model: config.model,
       messages,
       temperature: 0.1,
-      max_tokens: 1024
+      max_tokens: options.maxTokens || 1024
     };
     const url = `${config.apiBase}/chat/completions`;
     console.log('[AuditAPI] Calling:', url, 'model:', config.model, 'retry:', retryCount);
@@ -84,7 +84,7 @@ class AuditAPI {
         const delay = Math.pow(2, retryCount + 1) * 1500;
         console.warn(`[AuditAPI] Network error "${fetchErr.message}" — retrying in ${delay / 1000}s (${retryCount + 1}/${MAX_RETRIES})`);
         await new Promise(r => setTimeout(r, delay));
-        return AuditAPI._callAPIInternal(messages, config, retryCount + 1);
+        return AuditAPI._callAPIInternal(messages, config, retryCount + 1, options);
       }
       throw fetchErr;
     }
@@ -98,7 +98,7 @@ class AuditAPI {
         const delay = Math.pow(2, retryCount + 1) * 2000;  // 2s, 4s, 8s
         console.warn(`[AuditAPI] 429 rate limited — retrying in ${delay / 1000}s (${retryCount + 1}/${MAX_RETRIES})`);
         await new Promise(r => setTimeout(r, delay));
-        return AuditAPI._callAPIInternal(messages, config, retryCount + 1);
+        return AuditAPI._callAPIInternal(messages, config, retryCount + 1, options);
       }
 
       throw new Error(`API error ${response.status}: ${err.substring(0, 300)}`);

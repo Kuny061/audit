@@ -1272,11 +1272,19 @@
       if (!video.duration) return;
 
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Limit max dimension to 1920px to keep base64 payload manageable for API
+      const MAX_DIM = 1920;
+      let w = video.videoWidth;
+      let h = video.videoHeight;
+      if (w > MAX_DIM || h > MAX_DIM) {
+        if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+        else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+      }
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-      const base64 = canvas.toDataURL('image/jpeg', 0.9);
+      ctx.drawImage(video, 0, 0, w, h);
+      const base64 = canvas.toDataURL('image/jpeg', 0.85);
 
       this._frames.push({
         id: 'f_' + Date.now(),
@@ -1370,11 +1378,13 @@
               { type: 'text', text: '这是一张航拍图片。请统计图片中渣土车（自卸货车）的数量，并描述每辆车在图片中的大致位置。\n\n请仅返回JSON（不要其他内容）：\n{"count": 数字, "vehicles": [{"id": 序号, "position": "位置描述", "color": "颜色", "status": "行驶中/停靠"}]}' }
             ]
           }];
-          const result = await AuditAPI._callAPI(messages, config);
+          const result = await AuditAPI._callAPI(messages, config, 0, { maxTokens: 4096 });
+          console.log('[VideoAnalysis] API response:', result);
           // Parse JSON from result, stripping markdown fences if present
           const clean = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
           const jsonMatch = clean.match(/\{[\s\S]*\}/);
           frame.result = jsonMatch ? JSON.parse(jsonMatch[0]) : { count: 0, vehicles: [], raw: result };
+          console.log('[VideoAnalysis] Parsed result:', frame.result);
         } catch (e) {
           frame.error = e.message;
         }
