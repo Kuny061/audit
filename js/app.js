@@ -1375,7 +1375,7 @@
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: frame.base64 } },
-              { type: 'text', text: '这是一张航拍图片。请统计图片中渣土车（自卸货车）的数量，并描述每辆车在图片中的大致位置。\n\n请仅返回JSON（不要其他内容）：\n{"count": 数字, "vehicles": [{"id": 序号, "position": "位置描述", "color": "颜色", "status": "行驶中/停靠"}]}' }
+              { type: 'text', text: '这是一张航拍图片。请统计图片中机动车的数量（包括轿车、货车、渣土车、搅拌车、公交车等各类车辆），并描述每辆车在图片中的大致位置。\n\n请仅返回JSON（不要其他内容）：\n{"count": 数字, "vehicles": [{"id": 序号, "type": "车辆类型", "position": "位置描述", "color": "颜色", "status": "行驶中/停靠"}]}' }
             ]
           }];
           const result = await AuditAPI._callAPI(messages, config, 0, { maxTokens: 4096 });
@@ -1438,7 +1438,7 @@
       } else {
         $('#aiVideoResultVehicles').innerHTML = vehicles.map(v =>
           `<div class="ai-video-vehicle-item">
-            <strong>#${v.id}</strong> ${this._escapeHtml(v.position || '')}${v.color ? ' · ' + this._escapeHtml(v.color) : ''}${v.status ? ' · ' + this._escapeHtml(v.status) : ''}
+            <strong>#${v.id} ${this._escapeHtml(v.type || '')}</strong> · ${this._escapeHtml(v.position || '')}${v.color ? ' · ' + this._escapeHtml(v.color) : ''}${v.status ? ' · ' + this._escapeHtml(v.status) : ''}
           </div>`
         ).join('');
       }
