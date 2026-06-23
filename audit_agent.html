@@ -289,7 +289,7 @@
             <p class="ai-upload-zone-text">拖拽文件到此处或 <span>点击上传</span></p>
             <p class="ai-upload-zone-hint">支持PDF、Word、Excel、PPT、图片等格式</p>
             <input type="file" id="aiFileInput" class="ai-hidden" multiple 
-                   accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.bmp">
+                   accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.bmp,.mp4,.mov,.avi,.webm,.mkv">
           </div>
           
           <!-- File Preview List -->
@@ -759,7 +759,101 @@
       </div>
     </div>
   </div>
-  
+
+  <!-- Video Analysis Modal -->
+  <div id="aiVideoModal" class="ai-modal ai-hidden">
+    <div class="ai-modal-overlay"></div>
+    <div class="ai-modal-content ai-video-modal-content">
+      <div class="ai-modal-header">
+        <h3 class="ai-modal-title">
+          <i class="fas fa-video"></i>
+          <span>视频截图分析 — 渣土车航拍统计</span>
+        </h3>
+        <button class="ai-modal-close" onclick="VideoAnalysisModal.close()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="ai-modal-body ai-video-modal-body">
+
+        <!-- View 1: Capture -->
+        <div id="aiVideoCaptureView" class="ai-video-view">
+          <div class="ai-video-main">
+            <div class="ai-video-player-wrapper">
+              <video id="aiVideoPlayer" class="ai-video-player" controls></video>
+            </div>
+            <div class="ai-video-controls-extra">
+              <button class="ai-video-ctrl-btn" onclick="VideoAnalysisModal.skip(-5)" title="后退5秒">
+                <i class="fas fa-backward"></i> -5s
+              </button>
+              <button class="ai-video-ctrl-btn" onclick="VideoAnalysisModal.togglePlay()" title="播放/暂停">
+                <i class="fas fa-play" id="aiVideoPlayIcon"></i>
+              </button>
+              <button class="ai-video-ctrl-btn" onclick="VideoAnalysisModal.skip(5)" title="前进5秒">
+                +5s <i class="fas fa-forward"></i>
+              </button>
+              <span class="ai-video-time" id="aiVideoTime">00:00 / 00:00</span>
+              <input type="range" id="aiVideoTimeline" class="ai-video-timeline" min="0" max="100" value="0"
+                     oninput="VideoAnalysisModal.seekTo(this.value)">
+            </div>
+            <button class="ai-video-capture-btn" onclick="VideoAnalysisModal.captureFrame()">
+              <i class="fas fa-camera"></i> 截取当前帧
+            </button>
+          </div>
+          <div class="ai-video-frames-panel">
+            <div class="ai-video-frames-header">
+              <span>已截帧 <strong id="aiFrameCount">0</strong> 张</span>
+            </div>
+            <div id="aiFrameList" class="ai-video-frames-list">
+              <div class="ai-video-frames-empty">点击"截取当前帧"添加截图</div>
+            </div>
+            <div class="ai-video-frames-actions">
+              <button class="ai-video-frames-clear" onclick="VideoAnalysisModal.clearAllFrames()">
+                <i class="fas fa-undo"></i> 清空重截
+              </button>
+              <button id="aiVideoAnalyzeBtn" class="ai-video-frames-analyze" disabled
+                      onclick="VideoAnalysisModal.analyzeAll()">
+                <i class="fas fa-cloud-upload-alt"></i> 上传分析
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Analyzing -->
+        <div id="aiVideoAnalyzingView" class="ai-video-view ai-hidden">
+          <div class="ai-video-analyzing">
+            <div class="ai-video-spinner"></div>
+            <p>正在调用 AI 模型分析截帧中的车辆...</p>
+            <p class="ai-video-analyzing-progress" id="aiVideoAnalyzeProgress"></p>
+          </div>
+        </div>
+
+        <!-- View 3: Results -->
+        <div id="aiVideoResultView" class="ai-video-view ai-hidden">
+          <div class="ai-video-result-tabs" id="aiVideoResultTabs"></div>
+          <div class="ai-video-result-body">
+            <div class="ai-video-result-image">
+              <img id="aiVideoResultImage" src="" alt="截帧图片">
+            </div>
+            <div class="ai-video-result-info">
+              <div class="ai-video-result-count">
+                <span id="aiVideoResultCount">0</span>
+                <span class="ai-video-result-unit">辆</span>
+              </div>
+              <div class="ai-video-result-detail-title">位置描述：</div>
+              <div id="aiVideoResultVehicles" class="ai-video-result-vehicles"></div>
+            </div>
+          </div>
+          <div class="ai-video-result-actions">
+            <button class="ai-btn ai-btn-secondary" onclick="VideoAnalysisModal.backToCapture()">
+              <i class="fas fa-redo"></i> 重新截图
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Custom JavaScript -->
   <!-- ZXing barcode scanning library (local copy, no CDN dependency) -->
   <script src="js/zxing.min.js"></script>
