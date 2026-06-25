@@ -16,7 +16,7 @@
 
   async function init() {
     await lib.init();
-    loadConfigUI();
+    await loadConfigUI();
     bindEvents();
     renderLibrary();
     renderReviewList();
@@ -25,19 +25,21 @@
 
   // ── Config ──────────────────────────────────────────────
 
-  function loadConfigUI() {
-    const config = AuditAPI.loadConfig();
-    $('#aiConfigApiKey').value = config.apiKey;
-    $('#aiConfigApiBase').value = config.apiBase;
+  async function loadConfigUI() {
+    const config = await AuditAPI.loadConfig();
+    // API key is masked from server — show placeholder if configured
+    $('#aiConfigApiKey').value = config.configured ? '(已配置，无需修改)' : '';
+    $('#aiConfigApiKey').placeholder = config.configured ? '如需更换 Key，在此输入新 Key' : '输入智谱 API Key';
     $('#aiConfigModel').value = config.model;
     $('#aiConfigSimThreshold').value = config.similarityThreshold;
     $('#aiConfigPrefilterThreshold').value = config.prefilterThreshold;
-    updateConfigStatus();
+    await updateConfigStatus();
   }
 
-  function updateConfigStatus() {
+  async function updateConfigStatus() {
     const el = $('#aiConfigStatus');
-    if (AuditAPI.isConfigured()) {
+    const configured = await AuditAPI.isConfigured();
+    if (configured) {
       el.textContent = '已配置';
       el.className = 'ai-config-status ai-config-set';
     } else {
@@ -46,16 +48,19 @@
     }
   }
 
-  function saveConfig() {
+  async function saveConfig() {
+    const apiKeyInput = $('#aiConfigApiKey').value.trim();
     const config = {
-      apiKey: $('#aiConfigApiKey').value.trim(),
-      apiBase: $('#aiConfigApiBase').value.trim() || 'https://open.bigmodel.cn/api/paas/v4',
+      apiKey: apiKeyInput || undefined,  // undefined = don't overwrite server key
       model: $('#aiConfigModel').value,
       similarityThreshold: parseInt($('#aiConfigSimThreshold').value) || 80,
       prefilterThreshold: parseInt($('#aiConfigPrefilterThreshold').value) || 10
     };
-    AuditAPI.saveConfig(config);
-    updateConfigStatus();
+    await AuditAPI.saveConfig(config);
+    // Clear the key input field (key is now on server)
+    $('#aiConfigApiKey').value = '';
+    $('#aiConfigApiKey').placeholder = 'API Key 已保存到服务器';
+    await updateConfigStatus();
     return config;
   }
 
@@ -865,10 +870,11 @@
   // ── Analysis Flow ───────────────────────────────────────
 
   async function startAnalysis() {
-    if (!AuditAPI.isConfigured()) {
+    const configured = await AuditAPI.isConfigured();
+    if (!configured) {
       const panel = $('#aiConfigPanel');
       if (panel) panel.classList.remove('ai-hidden');
-      addLog('error', '请先配置 API Key');
+      addLog('error', '请先配置 API Key（API Key 存储在服务器端，请通过 API 配置面板设置）');
       return;
     }
     if (uploadedFiles.length === 0) return;
@@ -1183,17 +1189,44 @@
     _url: null,
     _frames: [],       // [{ id, base64, timestamp, result, error }]
     _currentResultIdx: 0,
+    _lastFile: null,   // preserve file reference so user can reopen after closing
 
     open(file) {
+      // Revoke previous URL if any (e.g. reopening)
+      if (this._url) {
+        URL.revokeObjectURL(this._url);
+        this._url = null;
+      }
+
       this._file = file;
+      this._lastFile = file;
       this._url = URL.createObjectURL(file);
       this._frames = [];
       this._currentResultIdx = 0;
 
       const video = $('#aiVideoPlayer');
-      video.src = this._url;
 
-      // Wait for metadata before showing
+      // ── Step 1: clear all handlers FIRST (prevent stale callbacks) ──
+      video.onerror = null;
+      video.onloadedmetadata = null;
+      video.ontimeupdate = null;
+      video.oncanplay = null;
+      video.onemptied = null;
+
+      // ── Step 2: fully reset video element (src='' + load) ──
+      video.pause();
+      video.src = '';
+      video.load();
+
+      // ── Step 3: set new source AFTER reset is processed ──
+      // Using a microtask ensures the browser has processed the empty src
+      // before assigning the new blob URL, preventing error-state lockup.
+      Promise.resolve().then(() => {
+        video.src = this._url;
+        video.load();
+      });
+
+      // ── Step 4: assign fresh handlers ──
       video.onloadedmetadata = () => {
         $('#aiVideoTimeline').max = Math.floor(video.duration);
         this._updateTimeDisplay();
@@ -1225,12 +1258,23 @@
       this._file = null;
       this._frames = [];
       const video = $('#aiVideoPlayer');
-      video.pause();
-      video.src = '';
+      // Clear handlers FIRST so load() with empty src doesn't trigger error callbacks
       video.onerror = null;
       video.onloadedmetadata = null;
       video.ontimeupdate = null;
+      video.oncanplay = null;
+      video.onemptied = null;
+      video.pause();
+      video.src = '';
+      video.load();
       $('#aiVideoModal').classList.add('ai-hidden');
+    },
+
+    // Reopen the last video that was closed (no file picker needed)
+    reopenLast() {
+      if (this._lastFile) {
+        this.open(this._lastFile);
+      }
     },
 
     togglePlay() {
@@ -1356,15 +1400,16 @@
 
     async analyzeAll() {
       if (this._frames.length === 0) return;
-      if (!AuditAPI.isConfigured()) {
-        alert('请先配置 API Key');
+      const configured = await AuditAPI.isConfigured();
+      if (!configured) {
+        alert('请先配置 API Key（API Key 存储在服务器端）');
         const panel = $('#aiConfigPanel');
         if (panel) panel.classList.remove('ai-hidden');
         return;
       }
 
       this._showView('analyzing');
-      const config = AuditAPI.loadConfig();
+      const config = await AuditAPI.loadConfig();
 
       for (let i = 0; i < this._frames.length; i++) {
         const frame = this._frames[i];
@@ -1378,7 +1423,7 @@
               { type: 'text', text: '这是一张航拍图片。请统计图片中机动车的数量（包括轿车、货车、渣土车、搅拌车、公交车等各类车辆）。\n\n请仅返回JSON（不要其他内容，每辆车描述控制在8个字以内）：\n{"count": 数字, "vehicles": [{"id": 序号, "type": "车辆类型", "pos": "简短位置"}]}' }
             ]
           }];
-          const result = await AuditAPI._callAPI(messages, config, 0, { maxTokens: 8192 });
+          const result = await AuditAPI._callAPI(messages, config, 0, { maxTokens: 2048 });
           console.log('[VideoAnalysis] API response:', result);
           // Parse JSON from result, stripping markdown fences if present
           const clean = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
@@ -1565,7 +1610,10 @@
       });
     }
     if (fileInput) {
-      fileInput.addEventListener('change', (e) => handleFileSelect(e.target.files));
+      fileInput.addEventListener('change', (e) => {
+        handleFileSelect(e.target.files);
+        e.target.value = ''; // reset so the same file can be re-selected
+      });
     }
 
     // Clear all files
@@ -1588,11 +1636,15 @@
     // Config save
     const configSave = $('#aiConfigSaveBtn');
     if (configSave) {
-      configSave.addEventListener('click', () => {
-        saveConfig();
-        const panel = $('#aiConfigPanel');
-        if (panel) panel.classList.add('ai-hidden');
-        addLog('success', '配置已保存');
+      configSave.addEventListener('click', async () => {
+        try {
+          await saveConfig();
+          const panel = $('#aiConfigPanel');
+          if (panel) panel.classList.add('ai-hidden');
+          addLog('success', '配置已保存到服务器');
+        } catch (e) {
+          addLog('error', `配置保存失败: ${e.message}`);
+        }
       });
     }
 

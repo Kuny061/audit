@@ -4,7 +4,7 @@
 
 ## 📋 项目简介
 
-本平台是一个**纯前端单页应用**，利用智谱 AI（GLM-4V）视觉语言模型，对农机报废补贴申报中的上传图片进行多阶段智能审计分析。系统能够自动识别图片类型（实物照片 / 条码），校验条码真实性，检测批次内重复上传，并通过与历史基准图片库比对发现异常，最终生成综合审计报告。
+本平台采用**前后端分离架构**，前端为单页应用，后端为 Express 代理服务。API Key 仅存储在服务器端，浏览器不接触敏感凭证。
 
 ### 核心审计流程（三阶段）
 
@@ -25,34 +25,33 @@
 
 ### 环境要求
 
+- **Node.js 18+**（后端代理服务需要）
 - 现代浏览器（Chrome / Edge / Firefox 最新版）
 - 智谱 AI API Key（[申请地址](https://open.bigmodel.cn/)）
 
 ### 启动方式
 
-项目为纯前端应用，无需构建工具或后端服务。任选一种方式启动：
-
-**方式一：直接打开**
 ```bash
-# Windows 资源管理器中双击 audit_agent.html
-```
+# 1. 安装依赖
+npm install
 
-**方式二：本地静态服务器**
-```bash
-# 使用 Python
-python -m http.server 8080
+# 2. （可选）通过环境变量预配置 API Key
+#    编辑 .env 文件（参考 .env.example），或启动后通过 Web 页面配置
+cp .env.example .env
 
-# 或使用 Node.js
-npx serve .
+# 3. 启动服务
+npm start
 
-# 浏览器访问 http://localhost:8080/audit_agent.html
+# 4. 浏览器访问
+#    http://localhost:3000
 ```
 
 ### 初次配置
 
-1. 打开页面后，点击「API 配置」展开配置面板
-2. 填入智谱 API Key
-3. 按需调整模型（默认 `glm-4v`）、相似度阈值、预筛选阈值
+1. 浏览器访问 `http://localhost:3000`
+2. 点击「API 配置」展开配置面板
+3. 填入智谱 API Key（Key **仅存储在服务器端**，不会暴露到浏览器）
+4. 按需调整模型（默认 `glm-4v`）、相似度阈值、预筛选阈值
 4. 点击「保存配置」
 
 ---
@@ -61,15 +60,21 @@ npx serve .
 
 ```
 ├── audit_agent.html              # 主页面（单页应用入口）
+├── server.js                     # Express 后端代理（API Key 安全存储）
+├── setup.js                      # 初始化脚本（复制静态资源）
+├── package.json                  # Node 依赖配置
+├── .env.example                  # 环境变量示例
 ├── css/
 │   └── styles.css                # 全局样式（深色主题，响应式布局）
 ├── js/
-│   ├── api.js                    # GLM API 集成层（请求封装、速率限制、图片压缩）
+│   ├── api.js                    # API 层（通过后端代理访问 GLM，不含 Key）
 │   ├── analysis-engine.js        # 三阶段审计流程编排引擎
 │   ├── app.js                    # 主应用逻辑（UI 绑定、文件管理、报告渲染）
 │   ├── image-lib.js              # IndexedDB 图片库 + 感知哈希（pHash）
 │   └── zxing.min.js              # ZXing 条码扫描库（客户端解码）
-├── docs/                         # 开发文档（设计规格、开发计划）
+├── vendor/
+│   └── fontawesome/              # Font Awesome 图标（本地化，无需 CDN）
+├── docs/                         # 开发文档
 └── README.md
 ```
 
@@ -163,9 +168,11 @@ npx serve .
 
 ## 🔒 数据安全
 
-- **纯客户端运行**：所有数据存储在用户浏览器本地（IndexedDB + localStorage）
-- **不上传图片到第三方服务器**（仅发送至用户配置的智谱 API）
-- **API Key 仅存储在浏览器 localStorage**
+- **API Key 服务器端存储**：Key 仅保存在服务器 `server-config.json`（已 gitignore），浏览器无法获取
+- **后端代理**：所有 AI API 调用通过 Express 代理转发，前端不直接访问智谱 API
+- **本地数据存储**：图片库使用 IndexedDB（浏览器本地），不上传至任何第三方
+- **安全 Headers**：使用 Helmet 中间件，防止常见 Web 攻击
+- **速率限制**：API 代理层限制 10 次/分钟，防止 Key 被滥用
 
 ---
 

@@ -1,48 +1,76 @@
 // js/api.js
-const CONFIG_KEY = 'audit_config';
+// ── All API calls go through the backend proxy — API key never touches the browser ──
+
+const CONFIG_CACHE_KEY = 'audit_config_ui';
 
 class AuditAPI {
   static getDefaults() {
     return {
-      apiKey: '',
-      apiBase: 'https://open.bigmodel.cn/api/paas/v4',
       model: 'glm-4v',
       similarityThreshold: 80,
       prefilterThreshold: 10
     };
   }
 
-  static loadConfig() {
+  // Load config from server. Falls back to defaults if server is unreachable.
+  static async loadConfig() {
     try {
-      const raw = localStorage.getItem(CONFIG_KEY);
-      if (raw) return { ...AuditAPI.getDefaults(), ...JSON.parse(raw) };
-    } catch (e) { /* ignore */ }
-    return AuditAPI.getDefaults();
+      const resp = await fetch('/api/config');
+      if (!resp.ok) throw new Error('Server config unavailable');
+      const serverCfg = await resp.json();
+      return {
+        ...AuditAPI.getDefaults(),
+        model: serverCfg.model || 'glm-4v',
+        similarityThreshold: serverCfg.similarityThreshold ?? 80,
+        prefilterThreshold: serverCfg.prefilterThreshold ?? 10,
+        configured: serverCfg.configured
+      };
+    } catch (e) {
+      console.warn('[AuditAPI] Server unreachable, using defaults:', e.message);
+      return { ...AuditAPI.getDefaults(), configured: false };
+    }
   }
 
-  static saveConfig(config) {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  // Save config to server. Only sends apiKey and model settings.
+  // apiBase is NOT sent — the server manages its own upstream Zhipu URL.
+  static async saveConfig(config) {
+    const body = {};
+    if (config.apiKey !== undefined) body.apiKey = config.apiKey;
+    if (config.model !== undefined) body.model = config.model;
+    if (config.similarityThreshold !== undefined) body.similarityThreshold = config.similarityThreshold;
+    if (config.prefilterThreshold !== undefined) body.prefilterThreshold = config.prefilterThreshold;
+
+    const resp = await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error('Failed to save server config');
+    return (await resp.json()).configured;
   }
 
-  static isConfigured() {
-    return !!AuditAPI.loadConfig().apiKey;
+  // Check if server has a valid API key configured
+  static async isConfigured() {
+    try {
+      const cfg = await AuditAPI.loadConfig();
+      return cfg.configured;
+    } catch (_) {
+      return false;
+    }
   }
 
   // ── API rate limiting with proper serial lock ──────
   static _lock = Promise.resolve();
-  static _minIntervalMs = 1000;  // wait 1s between calls to avoid 429
+  static _minIntervalMs = 1000;  // wait 1s between calls
 
   static async _callAPI(messages, config, retryCount = 0, options = {}) {
     const MAX_RETRIES = 3;
 
-    // Acquire lock — wait for previous request to fully complete
-    // Only acquire on first attempt, not retries (retries happen within the same lock window)
     if (retryCount === 0) {
       const prevLock = AuditAPI._lock;
       let releaseLock;
       AuditAPI._lock = new Promise(resolve => { releaseLock = resolve; });
       await prevLock;
-      // Store release function so _callAPIInternal can release on completion
       this._releaseLock = releaseLock;
     }
 
@@ -65,21 +93,17 @@ class AuditAPI {
       temperature: 0.1,
       max_tokens: options.maxTokens || 1024
     };
-    const url = `${config.apiBase}/chat/completions`;
-    console.log('[AuditAPI] Calling:', url, 'model:', config.model, 'retry:', retryCount);
+    const url = '/api/chat/completions';  // always go through our backend proxy
+    console.log('[AuditAPI] Calling proxy:', url, 'model:', config.model, 'retry:', retryCount);
 
     let response;
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
     } catch (fetchErr) {
-      // Network error — retry with backoff
       if (retryCount < MAX_RETRIES) {
         const delay = Math.pow(2, retryCount + 1) * 1500;
         console.warn(`[AuditAPI] Network error "${fetchErr.message}" — retrying in ${delay / 1000}s (${retryCount + 1}/${MAX_RETRIES})`);
@@ -93,7 +117,6 @@ class AuditAPI {
       const err = await response.text();
       console.error('[AuditAPI] Error', response.status, ':', err.substring(0, 200));
 
-      // 429 Too Many Requests — retry with exponential backoff
       if (response.status === 429 && retryCount < MAX_RETRIES) {
         const delay = Math.pow(2, retryCount + 1) * 2000;  // 2s, 4s, 8s
         console.warn(`[AuditAPI] 429 rate limited — retrying in ${delay / 1000}s (${retryCount + 1}/${MAX_RETRIES})`);
@@ -107,7 +130,6 @@ class AuditAPI {
     const data = await response.json();
     console.log('[AuditAPI] OK, tokens:', data.usage?.total_tokens);
 
-    // Wait minimum interval before letting next request proceed
     await new Promise(r => setTimeout(r, AuditAPI._minIntervalMs));
 
     return data.choices[0].message.content;
@@ -144,16 +166,11 @@ class AuditAPI {
   }
 
   static async identifyType(imageBase64) {
-    // Step 1: Try local barcode scanning for supplementary info only
     const scanResult = await AuditAPI._scanBarcodeAny(imageBase64);
-
-    // Step 2: Always use GLM to classify image type (per user requirement —
-    //   local browser scanning is unreliable for distinguishing barcode images from photos)
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const resized = await AuditAPI._resizeImage(imageBase64);
     const content = [AuditAPI._imageContent(resized)];
 
-    // Build prompt with local scan context if available
     let promptText;
     if (scanResult) {
       console.log('[AuditAPI] Local barcode detected via', scanResult.source + ':', scanResult.rawValue, '(' + scanResult.format + '). Asking GLM to verify...');
@@ -177,7 +194,7 @@ class AuditAPI {
   }
 
   static async comparePhoto(uploadBase64, uploadName, libraryImages) {
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const resizedUpload = await AuditAPI._resizeImage(uploadBase64);
     const content = [
       AuditAPI._imageContent(resizedUpload),
@@ -204,7 +221,7 @@ class AuditAPI {
   }
 
   static async compareBarcode(uploadBase64, uploadName, libraryImages) {
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const resizedUpload = await AuditAPI._resizeImage(uploadBase64);
     const content = [
       AuditAPI._imageContent(resizedUpload),
@@ -230,7 +247,8 @@ class AuditAPI {
     return [];
   }
 
-  // Local barcode scanning using BarcodeDetector API (Chrome/Edge)
+  // ── Barcode scanning (local, no API needed) ──
+
   static async _scanBarcodeLocal(base64) {
     if (typeof BarcodeDetector === 'undefined') {
       console.log('[AuditAPI] BarcodeDetector not available');
@@ -257,14 +275,12 @@ class AuditAPI {
     }
   }
 
-  // ZXing pure-JS barcode scanning (fallback when BarcodeDetector unavailable)
   static async _scanBarcodeZxing(base64) {
     if (typeof ZXing === 'undefined') {
       console.log('[AuditAPI] ZXing library not available');
       return null;
     }
     try {
-      // Resize image to a reasonable size first — improves ZXing detection rate
       const resizedBase64 = await AuditAPI._resizeForScan(base64, 1200);
       const img = new Image();
       const loaded = new Promise((resolve, reject) => {
@@ -277,7 +293,6 @@ class AuditAPI {
       const reader = new ZXing.BrowserMultiFormatReader();
       console.log('[AuditAPI] ZXing scanning image', img.width + 'x' + img.height);
 
-      // Try decodeFromImageElement first
       try {
         const result = reader.decodeFromImageElement(img);
         if (result) {
@@ -290,15 +305,12 @@ class AuditAPI {
         console.log('[AuditAPI] ZXing decodeFromImageElement failed:', e.message);
       }
 
-      // Try canvas-based approach as fallback
       try {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        // ZXing can also decode from luminance source
         const source = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
         const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source));
         const result2 = reader.decodeBitmap(bitmap);
@@ -320,7 +332,6 @@ class AuditAPI {
     }
   }
 
-  // Resize image for barcode scanning (max dimension, preserve aspect ratio)
   static async _resizeForScan(base64, maxDim) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -344,9 +355,7 @@ class AuditAPI {
     });
   }
 
-  // Try all available barcode scanning methods
   static async _scanBarcodeAny(base64) {
-    // Priority: BarcodeDetector (native) > ZXing (pure JS)
     let result = await AuditAPI._scanBarcodeLocal(base64);
     if (result) return { ...result, source: 'BarcodeDetector' };
     result = await AuditAPI._scanBarcodeZxing(base64);
@@ -354,10 +363,8 @@ class AuditAPI {
     return null;
   }
 
-  // GLM reads printed numbers from the image (OCR — what GLM is good at)
-  // Does NOT ask GLM to decode barcode patterns (GLM is unreliable at that)
   static async _extractPrintedNumbersGLM(imageBase64, imageName) {
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const resized = await AuditAPI._resizeImage(imageBase64);
     const messages = [{
       role: 'user',
@@ -375,11 +382,8 @@ class AuditAPI {
     throw new Error('Failed to extract printed numbers');
   }
 
-  // GLM fallback: decode barcode + extract printed numbers + compare (all in one call)
-  // Only used when local scanners (BarcodeDetector / ZXing) are unavailable
-  // Marked as 'glm_fallback' so UI can show it's less reliable than local scan
   static async _validateBarcodeGLMFallback(imageBase64, imageName) {
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const resized = await AuditAPI._resizeImage(imageBase64);
     const messages = [{
       role: 'user',
@@ -398,19 +402,16 @@ class AuditAPI {
   }
 
   static async validateBarcode(imageBase64, imageName) {
-    // Step 1: Try local barcode scanner (BarcodeDetector → ZXing)
-    //   These are purpose-built and far more reliable than any VLM at decoding
     const scanResult = await AuditAPI._scanBarcodeAny(imageBase64);
 
     if (!scanResult) {
-      // Step 2: Local scanners unavailable — fall back to GLM as last resort
-      console.warn('[AuditAPI] Local barcode scanner unavailable (BarcodeDetector not supported + ZXing CDN may be blocked). Falling back to GLM decoding (less reliable).');
+      console.warn('[AuditAPI] Local barcode scanner unavailable. Falling back to GLM decoding (less reliable).');
       try {
         const glmResult = await AuditAPI._validateBarcodeGLMFallback(imageBase64, imageName);
         console.log('[AuditAPI] GLM fallback result:', glmResult);
         return {
           ...glmResult,
-          source: 'glm_fallback'  // mark so UI knows it's GLM-based
+          source: 'glm_fallback'
         };
       } catch (e) {
         console.error('[AuditAPI] GLM fallback also failed:', e.message);
@@ -428,7 +429,6 @@ class AuditAPI {
 
     console.log('[AuditAPI] Barcode decoded via', scanResult.source + ':', scanResult.rawValue, '(' + scanResult.format + ')');
 
-    // Step 3: GLM reads the printed numbers (OCR) — what GLM is good at
     let printedInfo;
     try {
       printedInfo = await AuditAPI._extractPrintedNumbersGLM(imageBase64, imageName);
@@ -448,12 +448,9 @@ class AuditAPI {
     const decodedNumbers = scanResult.rawValue.trim();
     const printedNumbers = (printedInfo.printed_numbers || '').trim();
 
-    // Step 4: Compare — code does the comparison, not GLM
-    // Normalize: strip spaces, dashes, and other common separators
     const normDecoded = decodedNumbers.replace(/[\s\-_\.]/g, '');
     const normPrinted = printedNumbers.replace(/[\s\-_\.]/g, '');
 
-    // Cannot validate if no printed numbers found — this is a FAIL, not auto-pass
     if (printedNumbers === '无' || printedNumbers === '') {
       console.warn('[AuditAPI] No printed numbers found in image. Cannot compare.');
       return {
@@ -484,12 +481,12 @@ class AuditAPI {
       numbers_match: numbersMatch,
       is_suspicious: !numbersMatch,
       reason,
-      source: scanResult.source  // which scanning method successfully decoded the barcode
+      source: scanResult.source
     };
   }
 
   static async generateReport(summary) {
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const messages = [{
       role: 'user',
       content: `以下是本次审计的图片比对汇总数据：\n${JSON.stringify(summary, null, 2)}\n\n请生成一份审计分析报告（Markdown格式），包含：\n\n## 总体评估\n（共上传X张，发现可疑Y项，其中高风险Z项）\n\n## 可疑项详情\n（每项：图片名、匹配来源、相似度/异常描述、风险等级）\n\n风险等级定义：\n- 高风险：相似度>90%，基本确认同一物品或条码图案相同但数字不同\n- 中风险：相似度70-90%，需要人工复核\n- 低风险：有疑点但证据不够充分\n\n## 统计概览\n（按类型/风险等级分布）\n\n## 整改建议\n（针对发现的骗补嫌疑提出审计处理建议）`

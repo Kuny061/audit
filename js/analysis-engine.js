@@ -229,7 +229,7 @@ class AnalysisEngine {
       return classifiedImages;
     }
 
-    const config = AuditAPI.loadConfig();
+    const config = await AuditAPI.loadConfig();
     const LOCAL_MATCH_MAX = 3;   // pHash distance ≤ 3 → confirmed duplicate, no GLM needed
     const PREFILTER_MAX = 15;    // pHash distance ≤ 15 → send to GLM
     this._log('info', `图片库共 ${allLibImages.length} 张基准图，本地匹配阈值: ≤${LOCAL_MATCH_MAX}, GLM预筛选阈值: ≤${PREFILTER_MAX}`);

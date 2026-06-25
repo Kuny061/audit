@@ -5,11 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI智能审计分析平台</title>
   
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome (local) -->
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+
+  <!-- System Fonts (no external CDN dependency) -->
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+  </style>
   
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/styles.css">
@@ -260,10 +264,7 @@
               <label>API Key <span class="ai-config-required">*</span></label>
               <input type="password" id="aiConfigApiKey" placeholder="输入智谱 API Key">
             </div>
-            <div class="ai-config-row">
-              <label>API 地址</label>
-              <input type="text" id="aiConfigApiBase" placeholder="https://open.bigmodel.cn/api/paas/v4">
-            </div>
+            <!-- API 地址由服务端管理（ZHIPU_API_BASE 环境变量或默认值），前端无需配置 -->
             <div class="ai-config-row">
               <label>模型</label>
               <select id="aiConfigModel">
