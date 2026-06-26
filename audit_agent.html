@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智能审计分析平台</title>
+  <title>江苏审计智能分析平台</title>
   
   <!-- Font Awesome (local) -->
   <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
@@ -23,81 +23,55 @@
     <!-- Header -->
     <header class="ai-audit-header">
       <div class="ai-header-content">
-        <div class="ai-header-left">
-          <div class="ai-logo-section">
-            <div class="ai-logo-icon">
-              <i class="fas fa-shield-halved"></i>
-            </div>
-            <div class="ai-logo-text">
-              <h1>AI智能审计分析平台</h1>
-              <p>Intelligent Audit Analysis System</p>
-            </div>
+        <!-- 标题行：Logo + 标题居中 -->
+        <div class="ai-header-title-row">
+          <div class="ai-logo-icon">
+            <i class="fas fa-shield-halved"></i>
           </div>
-          
-          <div class="ai-header-divider"></div>
-          
-          <div class="ai-system-status">
-            <span class="ai-status-dot"></span>
-            <span>系统运行中</span>
-            <span>|</span>
-            <span>大模型: <strong class="ai-text-cyan">glm-5v-turbo</strong></span>
-            <span>|</span>
-            <span>知识库: <strong class="ai-text-cyan">v3.2.1</strong></span>
+          <div class="ai-logo-text">
+            <h1>江苏审计智能分析平台</h1>
+            <p>Jiangsu Intelligent Audit Analysis System</p>
           </div>
         </div>
-        
-        <div class="ai-header-right">
-          <div class="ai-stat-item">
-            <i class="fas fa-database"></i>
-            <span>规则库:</span>
-            <span>2,847</span>
+
+        <!-- 导航栏：状态(左) + 菜单(中) + 统计(右) -->
+        <nav class="ai-nav-bar">
+          <div class="ai-nav-content">
+            <div class="ai-nav-status">
+              <span class="ai-status-dot"></span>
+              <span>系统运行中</span>
+              <span style="color:#162147;margin:0 2px;">|</span>
+              <span>大模型: <strong class="ai-text-cyan">glm-5v-turbo</strong></span>
+              <span style="color:#162147;margin:0 2px;">|</span>
+              <span>知识库: <strong class="ai-text-cyan">v3.2.1</strong></span>
+            </div>
+            <div class="ai-nav-menu">
+              <a class="ai-nav-item ai-nav-active" data-tab="dashboard">
+                <i class="fas fa-home"></i><span>审计驾驶舱</span>
+              </a>
+              <a href="http://suguan.cdeep2.cstor.cn/#/agent" target="_blank" class="ai-nav-item">
+                <i class="fas fa-robot"></i><span>智能体平台</span>
+              </a>
+              <a class="ai-nav-item" data-tab="recognition">
+                <i class="fas fa-search"></i><span>智能识别</span>
+              </a>
+              <a class="ai-nav-item ai-nav-risk" data-tab="risk">
+                <i class="fas fa-exclamation-triangle"></i><span>风险检测</span>
+                <span class="ai-nav-badge">3</span>
+              </a>
+              <a class="ai-nav-item" data-tab="knowledge">
+                <i class="fas fa-book"></i><span>知识库管理</span>
+              </a>
+            </div>
+            <div class="ai-nav-stats">
+              <span><i class="fas fa-database"></i> 2,847</span>
+              <span><i class="fas fa-brain"></i> 15,392</span>
+              <span><i class="fas fa-bell" style="color:var(--ai-color-red);"></i> <span style="background:var(--ai-color-red);color:#fff;padding:1px 5px;border-radius:8px;font-size:0.625rem;">3</span></span>
+              <span class="ai-nav-user-avatar">A</span>
+            </div>
           </div>
-          
-          <div class="ai-stat-item">
-            <i class="fas fa-brain"></i>
-            <span>已审计:</span>
-            <span>15,392</span>
-          </div>
-          
-          <button class="ai-stat-item ai-stat-alert">
-            <i class="fas fa-bell ai-text-red"></i>
-            <span>告警</span>
-            <span class="ai-alert-badge">3</span>
-          </button>
-          
-          <div class="ai-stat-item ai-stat-user">
-            <div class="ai-user-avatar">A</div>
-            <span>审计员</span>
-          </div>
-        </div>
+        </nav>
       </div>
-      
-      <!-- Navigation Bar -->
-      <nav class="ai-nav-bar">
-        <div class="ai-nav-content">
-          <a class="ai-nav-item ai-nav-active" data-tab="dashboard">
-            <i class="fas fa-home"></i>
-            <span>审计驾驶舱</span>
-          </a>
-          <a href="http://suguan.cdeep2.cstor.cn/#/agent" target="_blank" class="ai-nav-item">
-            <i class="fas fa-robot"></i>
-            <span>智能体平台</span>
-          </a>
-          <a class="ai-nav-item" data-tab="recognition">
-            <i class="fas fa-search"></i>
-            <span>智能识别</span>
-          </a>
-          <a class="ai-nav-item ai-nav-risk" data-tab="risk">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>风险检测</span>
-            <span class="ai-nav-badge">3</span>
-          </a>
-          <a class="ai-nav-item" data-tab="knowledge">
-            <i class="fas fa-book"></i>
-            <span>知识库管理</span>
-          </a>
-        </div>
-      </nav>
     </header>
     
     <!-- Main Content -->
