@@ -968,13 +968,10 @@
   }
 
   function viewReportFromModal() {
-    // Close analysis modal, scroll to report
     closeAnalysisModal();
-    const reportSection = $('#aiReportSection');
-    if (reportSection) {
-      reportSection.classList.remove('ai-hidden');
-      reportSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Report is now in #aiResultModal — just show it
+    const modal = $('#aiResultModal');
+    if (modal) modal.classList.remove('ai-hidden');
   }
 
   function updateBarcodeComparePanel(img) {
@@ -1054,75 +1051,107 @@
   // ── Report Display ──────────────────────────────────────
 
   function showReport(reportMarkdown, summary) {
-    const section = $('#aiReportSection');
-    if (section) section.classList.remove('ai-hidden');
+    const modal = $('#aiResultModal');
+    const loading = $('#aiResultLoading');
+    const reportContent = $('#aiResultReportContent');
+    if (!modal || !reportContent) return;
 
-    // Build report content
+    // Hide loading spinner, show report content
+    if (loading) loading.classList.add('ai-hidden');
+    reportContent.classList.remove('ai-hidden');
+
+    // Build report content — same as before, no changes to the content logic
     const total = summary.totalUploaded;
     const suspiciousCount = summary.suspiciousItems.length;
     const high = summary.stats.high;
     const medium = summary.stats.medium;
     const low = summary.stats.low;
 
-    const insightEl = $('#aiInsightContent');
-    if (insightEl) {
-      let html = '';
+    let html = '';
 
-      // Summary box
-      html += '<div class="ai-report-summary-box">';
-      html += '<div class="ai-report-summary-title"><i class="fas fa-clipboard-check"></i> 审计总览</div>';
-      html += '<div class="ai-report-summary-grid">';
-      html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val">${total}</div><div class="ai-report-summary-label">上传图片</div></div>`;
-      html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-red">${suspiciousCount}</div><div class="ai-report-summary-label">可疑项</div></div>`;
-      html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-red">${high}</div><div class="ai-report-summary-label">高风险</div></div>`;
-      html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-orange">${medium}</div><div class="ai-report-summary-label">中风险</div></div>`;
-      html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-cyan">${low}</div><div class="ai-report-summary-label">低风险</div></div>`;
-      html += '</div></div>';
+    // Summary box
+    html += '<div class="ai-report-summary-box">';
+    html += '<div class="ai-report-summary-title"><i class="fas fa-clipboard-check"></i> 审计总览</div>';
+    html += '<div class="ai-report-summary-grid">';
+    html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val">${total}</div><div class="ai-report-summary-label">上传图片</div></div>`;
+    html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-red">${suspiciousCount}</div><div class="ai-report-summary-label">可疑项</div></div>`;
+    html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-red">${high}</div><div class="ai-report-summary-label">高风险</div></div>`;
+    html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-orange">${medium}</div><div class="ai-report-summary-label">中风险</div></div>`;
+    html += `<div class="ai-report-summary-item"><div class="ai-report-summary-val ai-text-cyan">${low}</div><div class="ai-report-summary-label">低风险</div></div>`;
+    html += '</div></div>';
 
-      // Suspicious items list (before AI report)
-      if (suspiciousCount > 0) {
-        html += '<div class="ai-report-suspicious-section">';
-        html += '<div class="ai-report-section-title"><i class="fas fa-exclamation-triangle"></i> 可疑项详情</div>';
-        for (const item of summary.suspiciousItems) {
-          const badgeCls = item.riskLevel === 'high' ? 'ai-risk-badge-high' : item.riskLevel === 'medium' ? 'ai-risk-badge-medium' : 'ai-risk-badge-low';
-          const label = item.riskLevel === 'high' ? '高风险' : item.riskLevel === 'medium' ? '中风险' : '低风险';
-          html += '<div class="ai-report-suspicious-item">';
-          html += `<div class="ai-report-suspicious-header">`;
-          html += `<span class="ai-report-suspicious-name"><i class="fas fa-image"></i> ${item.uploadName}</span>`;
-          html += `<span class="ai-risk-badge ${badgeCls}">${label}</span>`;
-          html += `</div>`;
-          html += `<div class="ai-report-suspicious-body">`;
-          html += `<div><strong>匹配基准图：</strong>${item.matchName}</div>`;
-          if (item.similarity) html += `<div><strong>相似度：</strong>${item.similarity}%</div>`;
-          html += `<div><strong>判定依据：</strong>${item.reason}</div>`;
-          html += `</div></div>`;
-        }
-        html += '</div>';
+    // Suspicious items list
+    if (suspiciousCount > 0) {
+      html += '<div class="ai-report-suspicious-section">';
+      html += '<div class="ai-report-section-title"><i class="fas fa-exclamation-triangle"></i> 可疑项详情</div>';
+      for (const item of summary.suspiciousItems) {
+        const badgeCls = item.riskLevel === 'high' ? 'ai-risk-badge-high' : item.riskLevel === 'medium' ? 'ai-risk-badge-medium' : 'ai-risk-badge-low';
+        const label = item.riskLevel === 'high' ? '高风险' : item.riskLevel === 'medium' ? '中风险' : '低风险';
+        html += '<div class="ai-report-suspicious-item">';
+        html += `<div class="ai-report-suspicious-header">`;
+        html += `<span class="ai-report-suspicious-name"><i class="fas fa-image"></i> ${item.uploadName}</span>`;
+        html += `<span class="ai-risk-badge ${badgeCls}">${label}</span>`;
+        html += `</div>`;
+        html += `<div class="ai-report-suspicious-body">`;
+        html += `<div><strong>匹配基准图：</strong>${item.matchName}</div>`;
+        if (item.similarity) html += `<div><strong>相似度：</strong>${item.similarity}%</div>`;
+        html += `<div><strong>判定依据：</strong>${item.reason}</div>`;
+        html += `</div></div>`;
       }
-
-      // AI-generated report content
-      html += '<div class="ai-report-section-title"><i class="fas fa-robot"></i> AI分析报告</div>';
-      html += '<div class="ai-report-body">';
-      html += markdownToHTML(reportMarkdown);
       html += '</div>';
-
-      insightEl.innerHTML = html;
     }
 
-    // Update subtitle
-    const subtitleEl = section ? section.querySelector('.ai-report-subtitle') : null;
-    if (subtitleEl) {
-      subtitleEl.textContent = `分析完成 · 上传${total}张 · 可疑${suspiciousCount}项 · 高风险${high}项`;
+    // AI report body
+    html += '<div class="ai-report-section-title"><i class="fas fa-robot"></i> AI分析报告</div>';
+    html += '<div class="ai-report-body">';
+    html += markdownToHTML(reportMarkdown);
+    html += '</div>';
+
+    reportContent.innerHTML = html;
+
+    // Update modal header date
+    const dateEl = modal.querySelector('.ai-report-modal-date');
+    if (dateEl) {
+      const now = new Date();
+      dateEl.textContent = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     }
 
-    // Update stat numbers in report stats section
-    if (section) {
-      const statValues = section.querySelectorAll('.ai-stat-value');
-      if (statValues.length >= 4) {
-        statValues[0].textContent = high;
-        statValues[1].textContent = medium;
-        statValues[2].textContent = total - suspiciousCount;
-        statValues[3].textContent = total;
+    // Show modal
+    modal.classList.remove('ai-hidden');
+
+    // Update left panel summary
+    updateReportSummary(total, high, medium, total - suspiciousCount);
+
+    // Hide old inline report section
+    const section = $('#aiReportSection');
+    if (section) section.classList.add('ai-hidden');
+  }
+
+  function updateReportSummary(total, risk, attention, normal) {
+    const elTotal = $('#aiRsTotal');
+    const elRisk = $('#aiRsRisk');
+    const elAtt = $('#aiRsAttention');
+    const elNormal = $('#aiRsNormal');
+    const badge = $('#aiReportSummaryBadge');
+    const recentItem = $('#aiReportRecentItem');
+    const recentRisk = $('#aiReportRecentRisk');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elRisk) elRisk.textContent = risk;
+    if (elAtt) elAtt.textContent = attention;
+    if (elNormal) elNormal.textContent = normal;
+    if (badge) badge.textContent = `共 ${total} 份`;
+
+    // Update recent report entry
+    if (recentItem) {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      recentItem.innerHTML = `<span>📄 ${dateStr}</span>`;
+      if (recentRisk) {
+        const riskText = risk > 0 ? `风险 ${risk} 项` : '正常';
+        const riskColor = risk > 0 ? 'var(--ai-color-red)' : 'var(--ai-color-green)';
+        recentRisk.textContent = riskText;
+        recentRisk.style.cssText = `font-size:0.625rem;background:rgba(${risk > 0 ? '255,59,92' : '14,217,180'},0.1);padding:1px 6px;border-radius:3px;color:${riskColor};`;
       }
     }
   }
@@ -1560,7 +1589,15 @@
         if (modal) modal.classList.remove('ai-hidden');
       }
     },
-    startAnalysis
+    startAnalysis,
+    openRecentReport() {
+      const modal = $('#aiResultModal');
+      if (modal) modal.classList.remove('ai-hidden');
+    },
+    viewAllReports() {
+      const modal = $('#aiResultModal');
+      if (modal) modal.classList.remove('ai-hidden');
+    }
   };
 
   // Patch legacy UI object for existing onclick handlers in HTML
@@ -1571,7 +1608,15 @@
   };
   window.UI.closeResultModal = () => {
     const modal = $('#aiResultModal');
+    const loading = $('#aiResultLoading');
+    const reportContent = $('#aiResultReportContent');
     if (modal) modal.classList.add('ai-hidden');
+    // Reset for next analysis
+    if (loading) loading.classList.remove('ai-hidden');
+    if (reportContent) {
+      reportContent.classList.add('ai-hidden');
+      reportContent.innerHTML = '';
+    }
   };
   window.UI.closeAnalysisModal = closeAnalysisModal;
   window.UI.reopenAnalysisModal = reopenAnalysisModal;
