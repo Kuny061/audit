@@ -78,79 +78,42 @@
     <main class="ai-main-content">
       <!-- Left Panel: Knowledge Base & AI Engine -->
       <div class="ai-left-panel">
-        <!-- Knowledge Base Card -->
+        <!-- Audit Report Summary Card -->
         <div class="ai-card ai-card-knowledge">
           <div class="ai-card-header">
             <h3 class="ai-card-title">
-              <i class="fas fa-database"></i>
-              <span>知识库概览</span>
+              <i class="fas fa-file-alt"></i>
+              <span>审计分析报告</span>
             </h3>
-            <span class="ai-card-badge">v3.2.1</span>
+            <span class="ai-card-badge" id="aiReportSummaryBadge">--</span>
           </div>
-          
-          <div class="ai-knowledge-list">
-            <div class="ai-knowledge-item">
-              <div class="ai-knowledge-header">
-                <span class="ai-knowledge-title">审计规则库</span>
-                <span class="ai-knowledge-value">2,847</span>
+          <div class="ai-report-summary-card" id="aiReportSummaryCard">
+            <div class="ai-report-summary-grid-2x2">
+              <div class="ai-report-summary-cell">
+                <div class="ai-rs-val" id="aiRsTotal" style="color:#e8edf5;">--</div>
+                <div class="ai-rs-label">分析总数</div>
               </div>
-              <div class="ai-progress-bar">
-                <div class="ai-progress-fill" style="width: 92%"></div>
+              <div class="ai-report-summary-cell">
+                <div class="ai-rs-val" id="aiRsRisk" style="color:var(--ai-color-red);">--</div>
+                <div class="ai-rs-label">风险项</div>
               </div>
-              <div class="ai-knowledge-desc">涵盖财务、合规、操作等6大类</div>
-            </div>
-            
-            <div class="ai-knowledge-item">
-              <div class="ai-knowledge-header">
-                <span class="ai-knowledge-title">法规条文库</span>
-                <span class="ai-knowledge-value">1,523</span>
+              <div class="ai-report-summary-cell">
+                <div class="ai-rs-val" id="aiRsAttention" style="color:var(--ai-color-orange);">--</div>
+                <div class="ai-rs-label">关注项</div>
               </div>
-              <div class="ai-progress-bar">
-                <div class="ai-progress-fill" style="width: 78%"></div>
+              <div class="ai-report-summary-cell">
+                <div class="ai-rs-val" id="aiRsNormal" style="color:var(--ai-color-green);">--</div>
+                <div class="ai-rs-label">正常项</div>
               </div>
-              <div class="ai-knowledge-desc">最新法规更新: 2024-01-15</div>
             </div>
-            
-            <div class="ai-knowledge-item">
-              <div class="ai-knowledge-header">
-                <span class="ai-knowledge-title">案例库</span>
-                <span class="ai-knowledge-value">8,692</span>
+            <div class="ai-report-summary-recent" id="aiReportRecent">
+              <div class="ai-report-summary-recent-label">最近报告</div>
+              <div class="ai-report-summary-recent-item" id="aiReportRecentItem" onclick="App.openRecentReport()">
+                <span>暂无报告</span>
+                <span id="aiReportRecentRisk"></span>
               </div>
-              <div class="ai-progress-bar">
-                <div class="ai-progress-fill" style="width: 85%"></div>
-              </div>
-              <div class="ai-knowledge-desc">历史审计案例与判例</div>
             </div>
-            
-            <div class="ai-knowledge-item">
-              <div class="ai-knowledge-header">
-                <span class="ai-knowledge-title">行业基准库</span>
-                <span class="ai-knowledge-value">456</span>
-              </div>
-              <div class="ai-progress-bar">
-                <div class="ai-progress-fill" style="width: 65%"></div>
-              </div>
-              <div class="ai-knowledge-desc">覆盖12个行业基准数据</div>
-            </div>
-          </div>
-          
-          <div class="ai-rule-categories">
-            <div class="ai-rule-item">
-              <div class="ai-rule-value ai-text-red">487</div>
-              <div class="ai-rule-label">财务规则</div>
-            </div>
-            <div class="ai-rule-item">
-              <div class="ai-rule-value ai-text-orange">623</div>
-              <div class="ai-rule-label">合规规则</div>
-            </div>
-            <div class="ai-rule-item">
-              <div class="ai-rule-value ai-text-cyan">892</div>
-              <div class="ai-rule-label">操作规则</div>
-            </div>
-            <div class="ai-rule-item">
-              <div class="ai-rule-value ai-text-purple">845</div>
-              <div class="ai-rule-label">风控规则</div>
-            </div>
+            <a class="ai-report-summary-view-all" id="aiReportViewAll" onclick="App.viewAllReports()">查看全部报告 →</a>
           </div>
         </div>
         
@@ -500,6 +463,9 @@
             <div id="aiCompareDiffList" class="ai-compare-diff-list"></div>
           </div>
           
+          <!-- Streaming Processing Cards -->
+          <div class="ai-stream-cards" id="aiStreamCards"></div>
+
           <!-- Processing Log -->
           <div class="ai-processing-log" id="aiProcessingLog">
             <div class="ai-log-entry ai-log-info">[系统] AI智能体协同引擎已启动...</div>
@@ -706,21 +672,23 @@
   <!-- Analysis Result Modal -->
   <div id="aiResultModal" class="ai-modal ai-hidden">
     <div class="ai-modal-overlay" onclick="UI.closeResultModal()"></div>
-    <div class="ai-modal-content ai-modal-content-large">
+    <div class="ai-modal-content ai-report-modal-content">
       <div class="ai-modal-header">
         <h3 class="ai-modal-title">
           <i class="fas fa-file-alt"></i>
           审计分析报告
+          <span class="ai-report-modal-date"></span>
         </h3>
         <button class="ai-modal-close" onclick="UI.closeResultModal()">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div id="aiResultContent" class="ai-modal-body">
-        <div class="ai-loading">
+        <div class="ai-loading" id="aiResultLoading">
           <div class="ai-spinner"></div>
           <span>正在生成报告...</span>
         </div>
+        <div id="aiResultReportContent" class="ai-hidden"></div>
       </div>
       <div class="ai-modal-footer">
         <button class="ai-btn ai-btn-secondary" onclick="UI.closeResultModal()">
