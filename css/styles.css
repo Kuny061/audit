@@ -1,18 +1,20 @@
 /* CSS变量定义 */
 :root {
-  --ai-color-bg: #0a0e27;
-  --ai-color-card: #111634;
-  --ai-color-border: #1e2a4a;
-  --ai-color-cyan: #00d4ff;
-  --ai-color-blue: #3b82f6;
+  --ai-color-bg: #060d1f;
+  --ai-color-card: rgba(16, 30, 70, 0.5);
+  --ai-color-border: rgba(30, 80, 180, 0.2);
+  --ai-color-cyan: #1a5cff;
+  --ai-color-blue: #3d7fff;
   --ai-color-purple: #8b5cf6;
-  --ai-color-red: #ef4444;
-  --ai-color-orange: #f59e0b;
-  --ai-color-green: #10b981;
-  --ai-color-text-primary: #e2e8f0;
-  --ai-color-text-secondary: #94a3b8;
+  --ai-color-red: #ff3b5c;
+  --ai-color-orange: #f5a623;
+  --ai-color-green: #0ed9b4;
+  --ai-color-text-primary: #e8edf5;
+  --ai-color-text-secondary: #7b8fb5;
   --ai-spacing-unit: 8px;
   --ai-font-size-base: 14px;
+  --ai-glow-blue: 0 0 16px rgba(26, 92, 255, 0.3);
+  --ai-glow-card: 0 0 20px rgba(26, 92, 255, 0.06);
 }
 
 /* 响应式字体大小 */
@@ -62,9 +64,8 @@ body {
 
 /* 头部 */
 .ai-audit-header {
-  background: linear-gradient(180deg, rgba(17, 22, 52, 0.98) 0%, rgba(10, 14, 39, 0.96) 100%);
+  background: var(--ai-color-bg);
   border-bottom: 1px solid var(--ai-color-border);
-  backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -288,6 +289,8 @@ body {
   border: 1px solid var(--ai-color-border);
   border-radius: 1rem;
   overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .ai-card-header {
