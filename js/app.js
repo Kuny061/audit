@@ -333,6 +333,56 @@
     }).join('');
   }
 
+  // ── Streaming Processing Cards ─────────────────────────
+
+  function renderStreamCards() {
+    const container = $('#aiStreamCards');
+    if (!container) return;
+
+    container.innerHTML = uploadedFiles.map(f => {
+      const stage1 = f.selfValidationStatus || 'pending';
+      const stage2 = f.crossCheckStatus || 'pending';
+      const stage3 = f.compareStatus || 'pending';
+
+      const stageIcon = (s) => {
+        if (s === 'done') return '<span style="color:var(--ai-color-green);">✓</span>';
+        if (s === 'running') return '<span class="ai-stage-running">⏳</span>';
+        if (s === 'error') return '<span style="color:var(--ai-color-red);">✗</span>';
+        return '<span style="color:#3a4f70;">○</span>';
+      };
+      const stageLabel = (s, name) => {
+        if (s === 'done') return `<span style="color:var(--ai-color-green);font-size:0.6875rem;">${name}</span>`;
+        if (s === 'running') return `<span style="color:var(--ai-color-cyan);font-size:0.6875rem;animation:pulse-text 1s infinite;">${name}</span>`;
+        return `<span style="color:#3a4f70;font-size:0.6875rem;">${name}</span>`;
+      };
+
+      const isProcessing = stage1 === 'running' || stage2 === 'running' || stage3 === 'running';
+      const isPending = stage1 === 'pending' && stage2 === 'pending' && stage3 === 'pending';
+      const cardClass = isProcessing ? 'ai-stream-card-processing' : isPending ? 'ai-stream-card-pending' : 'ai-stream-card-done';
+
+      return `
+        <div class="ai-stream-card ${cardClass}" data-file-id="${f.id}">
+          <div class="ai-stream-card-thumb">
+            <img src="${f.base64}" alt="${f.name}">
+            ${isProcessing ? '<canvas class="ai-scan-canvas" data-file-id="' + f.id + '"></canvas>' : ''}
+          </div>
+          <div class="ai-stream-card-body">
+            <div class="ai-stream-card-name" title="${f.name}">${f.name}</div>
+            <div class="ai-stream-card-stages">
+              <span>${stageIcon(stage1)} ${stageLabel(stage1, '阶段1: 自校验')}</span>
+              <span>${stageIcon(stage2)} ${stageLabel(stage2, '阶段2: 交叉比对')}</span>
+              <span>${stageIcon(stage3)} ${stageLabel(stage3, '阶段3: 入库对比')}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Pulse animation for running text
+  const pulseStyleEl = document.createElement('style');
+  pulseStyleEl.textContent = '@keyframes pulse-text{0%,100%{opacity:1;}50%{opacity:0.5;}}';
+  document.head.appendChild(pulseStyleEl);
+
   // ── Auto-save unmatched images to library ──────────────
 
   async function autoSaveToLibrary(libWasEmpty) {
@@ -886,8 +936,12 @@
     engine._onLog = addLog;
     engine._onImageUpdate = (img, idx) => {
       const realIdx = uploadedFiles.findIndex(f => f.id === img.id);
-      if (realIdx !== -1) uploadedFiles[realIdx] = img;
+      if (realIdx !== -1) {
+        const old = uploadedFiles[realIdx];
+        uploadedFiles[realIdx] = { ...old, ...img };
+      }
       renderReviewList();
+      renderStreamCards();
       // Incrementally update current stage card during Stage 1 & Stage 3
       if (_currentStage === 1 && img.stage1Status) {
         const stage1Images = uploadedFiles.filter(f => f.stage1Status);
@@ -902,6 +956,26 @@
     };
     engine._onStageChange = (stageNum, status, data) => {
       updateStageCard(stageNum, status, data);
+
+      // Update stream card stage statuses
+      if (status === 'start' && data && data.images) {
+        data.images.forEach(img => {
+          const f = uploadedFiles.find(uf => uf.id === img.id);
+          if (f) {
+            if (stageNum === 1) f.selfValidationStatus = 'running';
+            if (stageNum === 2) f.crossCheckStatus = 'running';
+            if (stageNum === 3) f.compareStatus = 'running';
+          }
+        });
+      }
+      if (status === 'end') {
+        uploadedFiles.forEach(f => {
+          if (stageNum === 1 && f.selfValidationStatus === 'running') f.selfValidationStatus = 'done';
+          if (stageNum === 2 && f.crossCheckStatus === 'running') f.crossCheckStatus = 'done';
+          if (stageNum === 3 && f.compareStatus === 'running') f.compareStatus = 'done';
+        });
+      }
+      renderStreamCards();
     };
 
     // Start processing timer
@@ -910,6 +984,14 @@
     // Record whether library was empty before analysis
     const libWasEmpty = (await lib.getCount()) === 0;
     console.log('[App] Starting analysis. Library was empty:', libWasEmpty, 'Uploaded files:', uploadedFiles.length);
+
+    // Initialize stage status for streaming cards
+    uploadedFiles.forEach(f => {
+      f.selfValidationStatus = 'pending';
+      f.crossCheckStatus = 'pending';
+      f.compareStatus = 'pending';
+    });
+    renderStreamCards();
 
     try {
       const result = await engine.runAnalysis(uploadedFiles);
